@@ -1,20 +1,24 @@
-import time, copy, mergeSort
+import time, random, noise
 class Game:
-    def __init__(self, tickSpeed):
+    def __init__(self, tickSpeed, mapsize):
         self.startTime = time.time()
         self.state = 0#starting, running, finished
         self.players = []#a list of all the players(instances of the species class) in the game
-        self.size#why did i add this
         self.items = []#a list of all the instances of the item class to iterate through when
-        self.map = self.generateMap()#the map the game takes place in. A grid of a fixed size with random spaces that are not traversable. a 2d array of 1s and 0s
+        self.map = self.generateMap(mapsize)#the map the game takes place in. A grid of a fixed size with random spaces that are not traversable. a 2d array of 1s and 0s
         self.chat = []#the global chat for the game with the time
         self.time = 0#the number of ticks since the beginning of the game
         self.tickSpeed = tickSpeed
         #tick needs to be called in a seperate thread and recalled every 1/tickspeed seconds
 
-    def generateMap(self):
-        #generate the map using perlin noise so it looks somewhat realistic if presented in a graphical interface
-        pass
+    def generateMap(self, mapsize):
+        #generate the map using simplex noise so it looks somewhat realistic if presented in a graphical interface. this should also mean that there are no open spaces that are shut off
+        octaves = 1
+        freq = 0.15 * mapsize#this means the map will not change based on mapsize
+        seed = random.randint(-1000000, 1000000)#if you put a random number generator in a generator it generates a different number each time and becomes random noise so it must be here instead
+        map = [[1  if noise.snoise2(x/freq, y/freq, octaves, base=(seed)) > 0.5 else 0 for y in range(mapsize)] for x in range(mapsize)]#for whatever reason the base parameter of this function must be less than 1 million
+        return map
+
 
     def updateChat(self):
         #a function so that items and species can update the chat when events happen. This is only for global events and messages.
