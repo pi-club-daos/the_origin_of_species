@@ -1,6 +1,7 @@
-import time, random, noise
+import time, random, noise, pathfinding
 class Game:
     def __init__(self, tickSpeed, mapsize, server):
+        self.mapsize = mapsize
         self.server = server#the instance of the server for networking
         self.startTime = time.time()
         self.state = 0#starting, running, finished
@@ -24,6 +25,7 @@ class Game:
 
     def addSpecies(self, ID):
         #a function to add new players.
+        self.updateChat("system: %s has joined the game" % (ID))
         newPlayer = Species(ID, self.creatureSize, self)
         self.players.append(newPlayer)
         newCreatures = newPlayer.firstGeneration()
@@ -32,6 +34,7 @@ class Game:
 
     def speciesIsDead(self, species):
         #does the appropriate processes when a species dies, including updating the players profile
+        self.updateChat("system: %s is extinct" % (species.ID))
         #check if the player wants to quit or spectate. If they want to quit:
         #talk to the server about how they did in the game
         for i in self.players:
@@ -50,12 +53,24 @@ class Game:
         pass
 
     def pathFind(self, loc1, loc2):
-        #this function finds a path between two points and returns the path as a tuple
-        pass
+        #this function finds a path between two points and returns the path as a list of tuples
+        return pathfinding.astar(self.map, loc1, loc2)
+
 
     def plantIsEaten(self, plant):
-        #this functino removes the plant and adds a new one in a random empty space. An item can be in the space the plant is spawned, but it must not be a hole
-        pass
+        #this function removes the plant and adds a new one in a random empty space. An item can be in the space the plant is spawned, but it must not be a hole
+        for item in self.items:
+            if item == plant:
+                del(item)
+                del(plant)
+                break
+        foundEmptySpace=False
+        #this just checks the map it doesn't check for other items because multiple items can occupy one space
+        while not foundEmptySpace:
+            space = (random.randint(0,self.mapsize), random.randint(0,self.mapsize))
+            if self.map[space[0]][space[1]] == 0:
+                foundEmptySpace = True
+        item.append(Plant(self, space, random.randint(1,5), True if random.randint(0,10)==0 else False))#the numbers in the random generators a magic and should be replaced with parameters/class variables
 
     def updateChat(self, message):
         #updates the chat and updates the chat of every species in the format(time, message
@@ -73,15 +88,17 @@ class Item:
 
     def isInSight(self, playerLoc, playerRad):
         #this function checks if the item is visible by the player in playerLoc.
+        loc = (playerLoc[0] - self.location[0], playerLoc[1] - self.location[1])
+        return loc[0]**2 + loc[1]**2 < playerRad**2
         pass
 
     def interestingCharacteristics(self):
         #this function returns the characteristics that affect the decisions that another item might take
-        pass
+        raise Exception("function not implemented")
 
     def eaten(self):
         # this function does the neccessary processes for if the creature is eaten. It will only be called by the creature that ate it
-        pass
+        raise Exception("function not implemented")
 
     def move(self):
         #this function exists so we can call this function on  any item and not get an error
@@ -96,7 +113,7 @@ class Item:
 class Creature(Item):
     def __init__(self, game, location, size, name, species, characteristics, generation, minPointsEnergy, maxEnergy, energyPerUnitSize, energyPerDistanceMoved, ID):
         self.gender = random.randint(0,1)# male = 0 female = 1 only females can have offspring and require a male to do this
-        self.ID = ID#this is used for the gamily tree
+        self.ID = (ID, name)#this is used for the family tree and is seperate to the species ID which is the player name. This includes the creature name to make the family tree more readable
         self.energyPerDistanceMoved = energyPerDistanceMoved
         Item.__init__(self, game, location, size)
         self.energyPerUnitSize = energyPerUnitSize
@@ -114,16 +131,17 @@ class Creature(Item):
 
     def calculateMove(self, destination):
         #this function calculates the move for the creature. It will use pathfinding, and return the space that the player should move to based on the speed of the creature
-        pass
+        path = self.game.pathFind(self.location, destination)
+        self.nextLoc = path[self.characteristics["speed"]]#this will get the speed from the characteristics and move to that space in the path. This means speed is equal to the number of steps moved in one tick
 
     def move(self):
         #this function moves the creature based on the move from calculateMove. all creatures should be moved at the same time after decisions have all been made. The creatures energy should decrease more if it moves but should always be decreased here. The species points should increase if it has energy over minpointsenergy
         self.energy -= self.location.dist(self.nextLoc) * self.energyPerDistanceMoved
         self.location = self.nextLoc
 
-
     def haveOffspring(self):
         #this function does the neccessary processes for if the creature wants to have offspring, including prompting the player to make decisions if it is the first offspring of its generation
+        offspring.append(self.species.addOffspring())
         pass
 
     def eat(self, item):
@@ -132,7 +150,7 @@ class Creature(Item):
         if self.energy > self.maxEnergy:
             self.energy == self.maxEnergy
         #this function does the necessary processes for if the creature eats something. the amount of energy added should be decided by the size of the item
-        pass
+
 
     def getInformation(self):
         #this function queries the isInSight of every item and returns a list of all that return true, along with the distance
@@ -182,6 +200,7 @@ class Species:
 
     def firstGeneration(self):
         #a function that creates the first genereation of creatures and returns a list of them. The location must be a space on the map with a value of zero
+        pass
 
     def newGeneration(self):
         #called by the server manager when the player responds with the characteristics they want
