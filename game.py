@@ -1,6 +1,7 @@
 import time, random, noise
 class Game:
-    def __init__(self, tickSpeed, mapsize):
+    def __init__(self, tickSpeed, mapsize, server):
+        self.server = server#the instance of the server for networking
         self.startTime = time.time()
         self.state = 0#starting, running, finished
         self.players = []#a list of all the players(instances of the species class) in the game
@@ -9,6 +10,7 @@ class Game:
         self.chat = []#the global chat for the game with the time
         self.time = 0#the number of ticks since the beginning of the game
         self.tickSpeed = tickSpeed
+        self.creatureSize = 1#this is a magic number
         #tick needs to be called in a seperate thread and recalled every 1/tickspeed seconds
 
     def generateMap(self, mapsize):
@@ -20,20 +22,31 @@ class Game:
         return map
 
 
-    def updateChat(self):
-        #a function so that items and species can update the chat when events happen. This is only for global events and messages.
-        pass
-
-    def addSpecies(self):
+    def addSpecies(self, ID):
         #a function to add new players.
+        newPlayer = Species(ID, self.creatureSize, self)
+        self.players.append(newPlayer)
+        newCreatures = newPlayer.firstGeneration()
+        self.items += newCreatures
         pass
 
-    def speciesIsDead(self):
+    def speciesIsDead(self, species):
         #does the appropriate processes when a species dies, including updating the players profile
+        #check if the player wants to quit or spectate. If they want to quit:
+        #talk to the server about how they did in the game
+        for i in self.players:
+            if i == species:
+                del(i)
+        del(species)
         pass
 
     def tick(self):
         #this increases the time and tells every item to make decisions, then tells every item to act on the decisions
+        self.time += 1
+        for item in self.items:
+            item.makeDecisions()
+        for item in self.items:
+            item.move()
         pass
 
     def pathFind(self, loc1, loc2):
@@ -46,7 +59,10 @@ class Game:
 
     def updateChat(self, message):
         #updates the chat and updates the chat of every species in the format(time, message
-        pass
+        msg = (time.time(), message)
+        self.chat.append(msg)
+        for player in self.players:
+            player.chat.append(msg)
 
 #the base class for all the different items/creatures that can exist in the game
 class Item:
@@ -65,6 +81,14 @@ class Item:
 
     def eaten(self):
         # this function does the neccessary processes for if the creature is eaten. It will only be called by the creature that ate it
+        pass
+
+    def move(self):
+        #this function exists so we can call this function on  any item and not get an error
+        pass
+
+    def makeDecisions(self):
+        #this function exists so we can call this function on  any item and not get an error
         pass
 
 
@@ -155,6 +179,9 @@ class Species:
     def addOffspring(self):
         #adds a new offspring and tells the player they need to specify the characteristics of the next generation if necessary
         pass
+
+    def firstGeneration(self):
+        #a function that creates the first genereation of creatures and returns a list of them. The location must be a space on the map with a value of zero
 
     def newGeneration(self):
         #called by the server manager when the player responds with the characteristics they want
