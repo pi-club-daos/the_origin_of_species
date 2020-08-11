@@ -86,10 +86,10 @@ class Item:
         self.game = game#this is the instance of the game class that the item belongs to. it allows the item to tell the game class to do certain things i.e. if a creature has offspring, a plant is eaten
         self.size = size#this is the size of the item, important for eating
 
-    def isInSight(self, playerLoc, playerRad):
+    def isInSight(self, playerLoc):
         #this function checks if the item is visible by the player in playerLoc.
         loc = (playerLoc[0] - self.location[0], playerLoc[1] - self.location[1])
-        return loc[0]**2 + loc[1]**2 < playerRad**2
+        return loc[0]**2 + loc[1]**2
         pass
 
     def interestingCharacteristics(self):
@@ -142,9 +142,15 @@ class Creature(Item):
     def haveOffspring(self):
         #this function does the neccessary processes for if the creature wants to have offspring, including prompting the player to make decisions if it is the first offspring of its generation
         offspring.append(self.species.addOffspring())
-        pass
+
 
     def eat(self, item):
+        if(not self.characteristics["can eat poisonous plants"] and item.__name__ == "Plant"):#sees if it is eating a plant and the creature can be killed by poisonous plants
+            if item.poisonous:
+                self.species.chat("system: %s ate a poisonous plant and died" % (self.name))
+                self.dead()
+
+        self.species.updateChat("system: %s ate %s of species %s" % (self.name, other.name, other.species.ID))
         self.energy += self.energyPerUnitSize * item.size
         item.eaten()
         if self.energy > self.maxEnergy:
@@ -154,20 +160,30 @@ class Creature(Item):
 
     def getInformation(self):
         #this function queries the isInSight of every item and returns a list of all that return true, along with the distance
-        pass
+        itemsInSight = []
+        distSquared = self.characteristics["view radius squared"]
+        for item in self.game.items:
+            itemDist = item.isInSight(self.location)
+            if itemDist > distSquared:
+                continue
+            itemsInSight.append((itemDist, item))
+        #sort itemsInSight here using a merge sort and remove the distances
+        return itemsInSight
 
     def makeDecisions(self):
         #this function makes decisions based on its characteristics and the interesting and based on the closest items first. As soon as one decision is made it will be done with this function.
+
         pass
 
-    def eaten(self):
+    def eaten(self, other):
         # this function does the neccessary processes for if the creature is eaten. It will only be called by the creature that ate it
-        pass
+        self.species.updateChat("system: %s was eaten by %s of species %s" % (self.name, other.name, other.species.ID))
+        self.dead()
 
     def dead(self):
         #this function does the necessary processes for if the creature dies
-        self.species.creatureIsEaten(self)
-        pass
+        self.species.creatureIsKilled(self)
+
 
 
 class Plant(Item):
@@ -212,7 +228,7 @@ class Species:
         self.game.updateChat(message)
         pass
 
-    def creatureIsEaten(self, creature):
+    def creatureIsKilled(self, creature):
         #removes the creature from creatures and adds it to the family tree
         self.familytree[creature.ID] = creature.offspring
 
