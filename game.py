@@ -1,4 +1,7 @@
-import time, random, noise, pathfinding
+import time
+import random
+import noise
+import pathfinding
 class Game:
     def __init__(self, tickSpeed, mapsize, server):
         self.mapsize = mapsize
@@ -65,12 +68,15 @@ class Game:
                 del(plant)
                 break
         foundEmptySpace=False
+        space = (random.randint(0, self.mapsize), random.randint(0, self.mapsize))
+        if self.map[space[0]][space[1]] == 0:
+            foundEmptySpace = True
         #this just checks the map it doesn't check for other items because multiple items can occupy one space
         while not foundEmptySpace:
             space = (random.randint(0,self.mapsize), random.randint(0,self.mapsize))
             if self.map[space[0]][space[1]] == 0:
                 foundEmptySpace = True
-        item.append(Plant(self, space, random.randint(1,5), True if random.randint(0,10)==0 else False))#the numbers in the random generators a magic and should be replaced with parameters/class variables
+        self.items.append(Plant(self, space, random.randint(1,5), True if random.randint(0,10)==0 else False))#the numbers in the random generators are magic numbers and should be replaced with parameters/class variables
 
     def updateChat(self, message):
         #updates the chat and updates the chat of every species in the format(time, message
@@ -90,13 +96,13 @@ class Item:
         #this function checks if the item is visible by the player in playerLoc.
         loc = (playerLoc[0] - self.location[0], playerLoc[1] - self.location[1])
         return loc[0]**2 + loc[1]**2
-        pass
+
 
     def interestingCharacteristics(self):
         #this function returns the characteristics that affect the decisions that another item might take
         raise Exception("function not implemented")
 
-    def eaten(self):
+    def eaten(self, other):
         # this function does the neccessary processes for if the creature is eaten. It will only be called by the creature that ate it
         raise Exception("function not implemented")
 
@@ -125,7 +131,7 @@ class Creature(Item):
         self.minPointsEnergy = minPointsEnergy#the amount of energy required to gain a point when move is called
         self.maxEnergy = maxEnergy#the the maximum energy the creature can have
         self.isBaby = True#the creature is immobile when it is a baby
-        self.nextLoc = ()#the location that the creature will move to when move is called
+        self.nextLoc = location#the location that the creature will move to when move is called
         self.dist = 0
 
     def calculateMove(self, destination):
@@ -156,7 +162,7 @@ class Creature(Item):
         self.energy += self.characteristics["energy per unit size"] * item.size
         item.eaten()
         if self.energy > self.maxEnergy:
-            self.energy == self.maxEnergy
+            self.energy = self.maxEnergy
 
 
 
@@ -174,8 +180,59 @@ class Creature(Item):
 
     def makeDecisions(self):
         #this function makes decisions based on its characteristics and the interesting and based on the closest items first. As soon as one decision is made it will be done with this function.
-
-        pass
+        self.age += 1
+        #see if is still a child
+        if self.age < self.characteristics["time to grow up"]:
+            return
+        #see if lifespan is up
+        if self.age > self.characteristics["lifespan"]:
+            self.dead()
+            return
+        itemsInSight = self.getInformation()
+        if len(itemsInSight) == 0:
+            #moves towards a random place
+            self.calculateMove((random.randint(0,self.game.mapsize), random.randint(0,self.game.mapsize)))
+            return
+        for item in itemsInSight:
+            #see if can mate and mate if so
+            if item.__name__ == self.__name__:#if it is also a creature
+                if item.species == self.species:
+                    if item.location != self.location:
+                        self.calculateMove(item.location)
+                        return
+                    elif random.randint(0,self.characteristics["chance to have offspring"]) == 0:
+                        self.haveOffspring()
+                        return
+                elif item.canEat(self):#if it can eat you
+                    #run away. While it would make sense to run in the opposite direction this will involve multiple calculations which may take a long time to calculate so for now it will just run in a random direction. This could be described as emulation of panic. Running in the opposite direction should be tested when the game is complete to see if there is a notable performance hit, however.
+                    self.calculateMove((random.randint(0, self.game.mapsize), random.randint(0, self.game.mapsize)))
+                    return
+                # see if can eat and eat if so. if animal must be carniverous and less than size can eat. if plant must be not poisonous if they have can see poison and not eat it
+                if self.characteristics["carnivorous"]:#if it can eat creatures
+                    if self.canEat(item):#if it can eat this creature
+                        if item.location != self.location:#move towards it if they aren't in the same location
+                            self.calculateMove(item.location)
+                            return
+                        else:
+                            self.eat(item)
+                            return
+            else:
+                #if it is not a creature it must be a plant
+                if self.characteristics["can eat poison"]:#if it can eat poisonous plants it should always eat the plant
+                    if item.location != self.location:
+                        self.calculateMove(item.location)
+                        return
+                    else:
+                        self.eat(item)
+                        return
+                else:
+                    if not(self.characteristics["can see poison"] or item.poionous):#if it can't see poison or the plant isn't poisonous eat the plant
+                        if item.location != self.location:
+                            self.calculateMove(item.location)
+                            return
+                        else:
+                            self.eat(item)
+                            return
 
     def eaten(self, other):
         # this function does the neccessary processes for if the creature is eaten. It will only be called by the creature that ate it
@@ -186,6 +243,12 @@ class Creature(Item):
         #this function does the necessary processes for if the creature dies
         self.species.creatureIsKilled(self)
 
+    def canEat(self, other):
+        #this function does the necessary processes to check if this creature can eat the creature other.
+        if other.species == self.species or not self.characteristics["carnivorous"]:
+            return False
+        return other.size < self.characteristics["size can eat"] * self.size
+
 
 
 class Plant(Item):
@@ -193,7 +256,7 @@ class Plant(Item):
         Item.__init__(self, game, location, size)
         self.poisonous = poisonous
 
-    def eaten(self):
+    def eaten(self, other):
         # this function does the neccessary processes for if the creature is eaten. It will only be called by the creature that ate it
         self.game.plantIsEaten(self)
 
@@ -209,7 +272,6 @@ class Species:
         self.ID = ID#the ID of this species that the player who is controlling this species needs to make actions
         self.characteristics = [{"speed" : 0,#the distance that the creature can move per step i time
                                 "maximum view dist squared" : 0,#the maximum distance that the creature can see, squared
-                                "size" : 0,#the size of the creature
                                  "size can eat" : 0,#the biggest size of creature that this creature can eat, as a ratio
                                  "carnivorous":False,#if the creature can eat other creatures
                                  "number of offspring" : 0,#the number of offspring that will be had by the creature when it has offspring
@@ -220,7 +282,8 @@ class Species:
                                  "camouflage" : 0,#the chance that another creature won't see this animal. this includes mates
                                  "can recognise predators": False,#if the creature can see predators, and therefore run away
                                  "can eat poison" : False,#if the creature can eat poisonous plants
-                                 "can see poison" : False#if the creature can see poisonous plants so it knows not to eat them
+                                 "can see poison" : False,#if the creature can see poisonous plants so it knows not to eat them
+                                 "chance to have offspring" : 10#1/ the probability that an offspring will be had at a given opportunity
                                 }]#a list of the characteristics of each generation
         self.points = 0#the points of the species, used to purchase new characteristics. Characteristics cost more the more creatures there are
         self.size = [initialSize]#the size of members of the species as a list split by generations
@@ -234,7 +297,7 @@ class Species:
         if(len(self.characteristics) == generation):#this means that this creature will belong to the youngest generation
             #tell the server to ask the player to specify the characteristics for the next generation
             pass
-        newCreature = Creature(self.game, parent.location, self.size[generation-1], self.generateRandomName(), self, self.characteristics[generation-1], generation, 50, 100, 0.1, 0.1, self.creatureID)#these are magic numbers and should be replaced
+        newCreature = Creature(self.game, parent.location, self.size[generation-1], self.generateRandomName(), self, self.characteristics[generation-1], generation, 50, 100, self.creatureID)#these are magic numbers and should be replaced
         self.creatures.append(newCreature)
         self.game.items.append(newCreature)
         self.creatureID += 1
