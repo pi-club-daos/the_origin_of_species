@@ -2,6 +2,7 @@ import time
 import random
 import noise
 import pathfinding
+import nameGeneration
 class Game:
     def __init__(self, tickSpeed, mapsize, server):
         self.mapsize = mapsize
@@ -305,15 +306,19 @@ class Species:
 
     def generateRandomName(self):
         #choose a random name
-        return
+        return nameGeneration.generateName()
+
     def firstGeneration(self):
         #a function that creates the first genereation of creatures and returns a list of them. The location must be a space on the map with a value of zero
+
         pass
 
-    def newGeneration(self):
+    def newGeneration(self, characteristics, size):
         #called by the server manager when the player responds with the characteristics they want
-        #contains the processes so that
-        pass
+        #contains the processes so that the characteristics and size arrays are updated with the new characteristics
+        self.size.append(size)
+        self.characteristics.append(characteristics)
+
     def sendMessage(self, message):
         #sends a message to the global game chat, and therefore all players
         message = self.ID + ": " + message
@@ -322,7 +327,7 @@ class Species:
 
     def creatureIsKilled(self, creature):
         #removes the creature from creatures and adds it to the family tree
-        self.familytree[creature.ID] = creature.offspring
+        self.familytree[creature.ID] = creature.offspring#this will likely need to be modified when the algorithm for displaying the family tree is implemented, or removed if it turns out that implemting a family tree is not practical in terms of processing time
 
     def getChat(self):
         #a function to get the unread chat and delete the read chat. This could be made more effecient by deleting the whole chat when it is read, however this is likely to potentially cause issues if there a functions running in different threads
