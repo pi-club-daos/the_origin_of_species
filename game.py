@@ -4,20 +4,21 @@ import noise
 import pathfinding
 import nameGeneration
 class Game:
-    def __init__(self, tickSpeed, mapsize, server):
+    def __init__(self, mapsize, server):
+        self.started = False
         self.mapsize = mapsize
         self.server = server#the instance of the server for networking
         self.startTime = time.time()
-        self.state = 0#starting, running, finished
-        self.players = []#a list of all the players(instances of the species class) in the game
+        self.players = {}#a dict of all the players(instances of the species class) in the game
         self.items = []#a list of all the instances of the item class to iterate through when
         self.map = self.generateMap(mapsize)#the map the game takes place in. A grid of a fixed size with random spaces that are not traversable. a 2d array of 1s and 0s
         self.chat = []#the global chat for the game with the time
         self.time = 0#the number of ticks since the beginning of the game
-        self.tickSpeed = tickSpeed
         self.creatureSize = 1#this is a magic number
         #tick needs to be called in a seperate thread and recalled every 1/tickspeed seconds
 
+    def getChat(self, ID):
+        return self.players[ID].getChat()
     def generateMap(self, mapsize):
         #generate the map using simplex noise so it looks somewhat realistic if presented in a graphical interface. this should also mean that there are no open spaces that are shut off
         octaves = 1
@@ -27,14 +28,17 @@ class Game:
         return map
 
 
+    def newGeneration(self, ID, characteristics, size):
+        self.players[ID].newGeneration(characteristics, size)
+
     def addSpecies(self, ID):
         #a function to add new players.
+        if ID in self.players.keys():
+            return
         self.updateChat("system: %s has joined the game" % (ID))
-        newPlayer = Species(ID, self.creatureSize, self)
-        self.players.append(newPlayer)
-        newCreatures = newPlayer.firstGeneration()
-        self.items += newCreatures
-        pass
+        self.players[ID] = Species(ID, self.creatureSize, self)
+        self.items += self.players[ID].firstGeneration()
+
 
     def speciesIsDead(self, species):
         #does the appropriate processes when a species dies, including updating the players profile
@@ -45,16 +49,18 @@ class Game:
             if i == species:
                 del(i)
         del(species)
-        pass
+
 
     def tick(self):
         #this increases the time and tells every item to make decisions, then tells every item to act on the decisions
+        if not self.started:#this means time does not pass until the game has started
+            return
         self.time += 1
         for item in self.items:
             item.makeDecisions()
         for item in self.items:
             item.move()
-        pass
+
 
     def pathFind(self, loc1, loc2):
         #this function finds a path between two points and returns the path as a list of tuples
@@ -317,6 +323,7 @@ class Species:
         #called by the server manager when the player responds with the characteristics they want
         #contains the processes so that the characteristics and size arrays are updated with the new characteristics
         self.size.append(size)
+        #make sure they can afford the characteristics
         self.characteristics.append(characteristics)
 
     def sendMessage(self, message):
