@@ -9,6 +9,7 @@ class ServerManager:
 
     def logIn(self, username):
         #the password will have already been checked in the flask file with the database
+        #the username will contain the players username as well as any titles they have unlocked
         toDelete = []
         for id in self.players:
             if self.players[id][0] == username:
@@ -68,4 +69,17 @@ class ServerManager:
 
     def newGeneration(self, characteristics, size):
         #this function should be called by the client when the player has defined a new generation
+        return
+
+    def sendMessage(self, message):
+        #this function contains the processes for the message to be sent to all the players.
+        return
+
+    def playerIsDead(self, place, playerID):
+        #this function contains the processes for when a player dies, and does the necessary processes so that the player is given any rewards they deserve. it should be called by the client as there is no incentive to fake this.
+        if self.players[playerID][2] == None:#this means the player wasn't in a game so couldn't have died
+            return
+        if len(self.players[playerID][2][players]) > place:#this means that they can't have come in this position as there are more than this number of people remaining
+            return
+        #do stuff here this function is not finished
         return

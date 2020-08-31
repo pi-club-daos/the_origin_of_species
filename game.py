@@ -30,6 +30,7 @@ class Game:
 
     def newGeneration(self, ID, characteristics, size):
         self.players[ID].newGeneration(characteristics, size)
+        self.updateChat("system: there is a new generation of %s" % (ID))
 
     def addSpecies(self, ID):
         #a function to add new players.
@@ -48,6 +49,7 @@ class Game:
         for i in self.players:
             if i == species:
                 del(i)
+        species.updateChat("system: you came in %s place" % ((lambda n: "%d%s" % (n,"tsnrhtdd"[(n/10%10!=1)*(n%10<4)*n%10::4]))(len(self.players) + 1)))#ordinal number converter sourced from here: https://stackoverflow.com/questions/9647202/ordinal-numbers-replacement
         del(species)
 
 
@@ -155,17 +157,22 @@ class Creature(Item):
     def haveOffspring(self):
         #this function does the neccessary processes for if the creature wants to have offspring, including prompting the player to make decisions if it is the first offspring of its generation
         self.offspring.append(self.species.addOffspring(self.generation+1))
+        self.species.updateChat("system: %s has had offspring" % (self.name))
 
 
     def eat(self, item):
         # this function does the necessary processes for if the creature eats something. the amount of energy added should be decided by the size of the item
-        if(not self.characteristics["can eat poisonous plants"] and item.__name__ == "Plant"):#sees if it is eating a plant and the creature can be killed by poisonous plants
-            if item.poisonous:
-                self.species.chat("system: %s ate a poisonous plant and died" % (self.name))
-                item.eaten()
-                self.dead()
+        if item.__name__ == "Plant":
+            self.species.updateChat("system: %s ate a plant" % (self.name))
+            if(not self.characteristics["can eat poisonous plants"]):#sees if it is eating a plant and the creature can be killed by poisonous plants
+                if item.poisonous:
+                    self.species.updateChat("system: the plant %s ate was poisnous and it died" % (self.name))
+                    item.eaten()
+                    self.dead()
+                    return
 
-        self.species.updateChat("system: %s ate %s of species %s" % (self.name, item.name, item.species.ID))
+        else:
+            self.species.updateChat("system: %s ate %s of species %s" % (self.name, item.name, item.species.ID))
         self.energy += self.characteristics["energy per unit size"] * item.size
         item.eaten()
         if self.energy > self.maxEnergy:
@@ -190,9 +197,11 @@ class Creature(Item):
         self.age += 1
         #see if is still a child
         if self.age < self.characteristics["time to grow up"]:
+            self.species.updateChat("system: %s grew up" % (self.name))
             return
         #see if lifespan is up
         if self.age > self.characteristics["lifespan"]:
+            self.species.updateChat("system: %s died of old age" % (self.name))
             self.dead()
             return
         itemsInSight = self.getInformation()
@@ -346,3 +355,8 @@ class Species:
                 chat.append(message[1])
         self.chatLastRead = time.time()
         return chat
+
+    def updateChat(self, message):
+        #updates the chat in the format (time, message)
+        msg = (time.time(), message)
+        self.chat.append(msg)
