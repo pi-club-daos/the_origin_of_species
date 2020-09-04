@@ -1,11 +1,61 @@
 import game
 import string
+import time
+import random
+import math
 class ServerManager:
 
     def __init__(self):
         self.games = {}#a dictionary with the key as the id of each games and the value as a tuple of the game instance and the time it was started at and the name of the creator
         self.players = {}# a dictionary with the key as the string sent to the user when they log in and the value as a tuple of the player name and the time they logged in and the id of the game they are in
         self.newGenerations = {}# a dictionary with the key as the player name and the value as a tuple with the number of generations they need to choose characteristics for and the number of points they have and the existing characteristics
+        self.characteristicsCost = {"speed" : (20, 0),#the distance that the creature can move per step i time
+                                "maximum view dist squared" : (1, 0),#the maximum distance that the creature can see, squared
+                                 "size can eat" : (1000, 0),#the biggest size of creature that this creature can eat, as a ratio
+                                 "carnivorous":(100, 0),#if the creature can eat other creatures
+                                 "number of offspring" : (50, 0),#the number of offspring that will be had by the creature when it has offspring
+                                 "time to grow up" : (100, 100),#multiply this by 100-the value. also the number of steps in time it will take for the creature to be able to move
+                                 "energy per unit size" : (100, 100),#multiply this by 100 - the value. also the amount of energy that a different creature will gain when eating this creature. this should probably be fixed and not here.
+                                 "energy per distance moved" : (100, 100),#also the amount of energy that will be used by the creature when it is moving
+                                 "lifespan" : (1, 0),#the number of steps in time after which the creature will die of old age
+                                 "camouflage" : (1000, 0),#the chance that another creature won't see this animal. this includes mates
+                                 "can recognise predators": (100, 0),#if the creature can see predators, and therefore run away
+                                 "can eat poison" : (1000, 0),#if the creature can eat poisonous plants
+                                 "can see poison" : (200, 0),#if the creature can see poisonous plants so it knows not to eat them
+                                 "chance to have offspring" : (1000, 10)#1/ the probability that an offspring will be had at a given opportunity
+                                }#a dictionary of the cost of characteristics. first value is cost second value is how you get things that decrease to increase by doing abs(cost[1] - num) * cost. the numbers here are just chosen randomly from my brain right now and should be changed to improve gameplay
+
+        self.maxCharacteristics = {"speed" : (100, True),#the distance that the creature can move per step i time
+                                "maximum view dist squared" : (100, True),#the maximum distance that the creature can see, squared
+                                 "size can eat" : (2, True),#the biggest size of creature that this creature can eat, as a ratio
+                                 "carnivorous":(1, True),#if the creature can eat other creatures
+                                 "number of offspring" : (10, True),#the number of offspring that will be had by the creature when it has offspring
+                                 "time to grow up" : (10, False),#the number of steps in time it will take for the creature to be able to move
+                                 "energy per unit size" : (10, False),#the amount of energy that a different creature will gain when eating this creature. this should probably be fixed and not here.
+                                 "energy per distance moved" : (10, False),#also the amount of energy that will be used by the creature when it is moving
+                                 "lifespan" : (1000, True),#the number of steps in time after which the creature will die of old age
+                                 "camouflage" : (0.75, True),#the chance that another creature won't see this animal. this includes mates
+                                 "can recognise predators": (1, True),#if the creature can see predators, and therefore run away
+                                 "can eat poison" : (1, True),#if the creature can eat poisonous plants
+                                 "can see poison" : (1, True),#if the creature can see poisonous plants so it knows not to eat them
+                                 "chance to have offspring" : (0.75, True)#1/ the probability that an offspring will be had at a given opportunity
+                                }#a dictionary for the max values of each characteristic. is False if it is a minimum
+
+    def checkCharacteristicsAreValid(self, characteristics, points):
+        #check that all the characteristics are less than the maxCharacteristics
+        for characteristic in characteristics.keys():
+            if self.maxCharacteristics[characteristics][1]:
+                if characteristics[characteristic] > self.maxCharacteristics[characteristics][0]:
+                    return False
+            else:
+                if characteristics[characteristic] < self.maxCharacteristics[characteristics][0]:
+                    return False
+
+        #check that the characteristics cost the amount of points the player has
+        count = 0
+        for characteristic in characteristics.keys():
+            count += abs(self.characteristicsCost[characteristic][1] - characteristics[characteristic]) * self.characteristicsCost[characteristic][0]
+        return count == points
 
     def logIn(self, username):
         #the password will have already been checked in the flask file with the database
@@ -20,14 +70,15 @@ class ServerManager:
         self.players[uniqueString] = (username, time.time(), None)
         return uniqueString
 
+
     def generateUniqueString(self, length):
         #method from here https://www.educative.io/edpresso/how-to-generate-a-random-string-in-python
         letters = string.ascii_letters
         return ''.join(random.choice(letters) for i in range(length))
 
-    def newGame(self, creator):
+    def newGame(self, creator, maxPlayers):
         id = self.generateUniqueString(5)
-        self.games[id] = (game.Game(500, self), time.time(), creator)
+        self.games[id] = (game.Game(500, self, maxPlayers), time.time(), creator)
         return id
 
     def joinGame(self, playerID, gameID):
@@ -79,7 +130,8 @@ class ServerManager:
         #this function contains the processes for when a player dies, and does the necessary processes so that the player is given any rewards they deserve. it should be called by the client as there is no incentive to fake this.
         if self.players[playerID][2] == None:#this means the player wasn't in a game so couldn't have died
             return
-        if len(self.players[playerID][2][players]) > place:#this means that they can't have come in this position as there are more than this number of people remaining
+        if self.players[playerID][2].alivePlayers > place:#this means that they can't have come in this position as there are more than this number of people remaining
+            self.players[playerID][2] = None#kicks them from the game
             return
         #do stuff here this function is not finished
         return

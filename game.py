@@ -298,11 +298,11 @@ class Species:
         self.familytree = {}#a graph of all the dead creatures' IDs and
         self.chat = []#a chat containing all of the events specific to this species
         self.ID = ID#the ID of this species that the player who is controlling this species needs to make actions
-        self.characteristics = [{"speed" : 0,#the distance that the creature can move per step i time
-                                "maximum view dist squared" : 0,#the maximum distance that the creature can see, squared
+        self.characteristics = [{"speed" : 1,#the distance that the creature can move per step i time
+                                "maximum view dist squared" : 1,#the maximum distance that the creature can see, squared
                                  "size can eat" : 0,#the biggest size of creature that this creature can eat, as a ratio
                                  "carnivorous":False,#if the creature can eat other creatures
-                                 "number of offspring" : 0,#the number of offspring that will be had by the creature when it has offspring
+                                 "number of offspring" : 1,#the number of offspring that will be had by the creature when it has offspring
                                  "time to grow up" : 100,#this is a magic number. also the number of steps in time it will take for the creature to be able to move
                                  "energy per unit size" : 100,#this is a magic number. also the amount of energy that a different creature will gain when eating this creature. this should probably be fixed and not here.
                                  "energy per distance moved" : 100,#this is a magic number. also the amount of energy that will be used by the creature when it is moving
@@ -313,7 +313,7 @@ class Species:
                                  "can see poison" : False,#if the creature can see poisonous plants so it knows not to eat them
                                  "chance to have offspring" : 10#1/ the probability that an offspring will be had at a given opportunity
                                 }]#a list of the characteristics of each generation
-        self.points = 0#the points of the species, used to purchase new characteristics. Characteristics cost more the more creatures there are
+        self.points = 100#the points of the species, used to purchase new characteristics. Characteristics cost more the more creatures there are. edit this number to change the number of points players start with
         self.size = [initialSize]#the size of members of the species as a list split by generations
         self.chatLastRead = time.time()
 
