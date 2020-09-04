@@ -4,7 +4,7 @@ import noise
 import pathfinding
 import nameGeneration
 class Game:
-    def __init__(self, mapsize, server):
+    def __init__(self, mapsize, server, maxPlayers):
         self.started = False
         self.mapsize = mapsize
         self.server = server#the instance of the server for networking
@@ -15,6 +15,9 @@ class Game:
         self.chat = []#the global chat for the game with the time
         self.time = 0#the number of ticks since the beginning of the game
         self.creatureSize = 1#this is a magic number
+        self.alivePlayers = 0
+        self.maxPlayers = maxPlayers
+        self.full = self.alivePlayers == self.maxPlayers
         #tick needs to be called in a seperate thread and recalled every 1/tickspeed seconds
 
     def getChat(self, ID):
@@ -36,6 +39,7 @@ class Game:
         #a function to add new players.
         if ID in self.players.keys():
             return
+        self.alivePlayers += 1
         self.updateChat("system: %s has joined the game" % (ID))
         self.players[ID] = Species(ID, self.creatureSize, self)
         self.items += self.players[ID].firstGeneration()
@@ -43,13 +47,21 @@ class Game:
 
     def speciesIsDead(self, species):
         #does the appropriate processes when a species dies, including updating the players profile
+        self.alivePlayers -= 1
         self.updateChat("system: %s is extinct" % (species.ID))
+        if self.alivePlayers == 2:#this means someone has won the game
+            self.updateChat("The game is over")
+            for i in self.players.keys():
+                if self.players[i].__class__.__name__ == "Species":
+                    self.speciesIsDead(self.players[i])
+                    break
+
         #check if the player wants to quit or spectate. If they want to quit:
         #talk to the server about how they did in the game
-        for i in self.players:
-            if i == species:
-                del(i)
-        species.updateChat("system: you came in %s place" % ((lambda n: "%d%s" % (n,"tsnrhtdd"[(n/10%10!=1)*(n%10<4)*n%10::4]))(len(self.players) + 1)))#ordinal number converter sourced from here: https://stackoverflow.com/questions/9647202/ordinal-numbers-replacement
+        del(self.players[species.ID])
+        species.updateChat("system: you came in %s place" % ((lambda n: "%d%s" % (n,"tsnrhtdd"[(n/10%10!=1)*(n%10<4)*n%10::4]))(self.alivePlayers + 1)))#ordinal number converter sourced from here: https://stackoverflow.com/questions/9647202/ordinal-numbers-replacement
+
+        self.players[species] = Ghost(species.chat, self)#replaces the player with a ghost that can still see the chat and send messages
         del(species)
 
 
@@ -162,7 +174,7 @@ class Creature(Item):
 
     def eat(self, item):
         # this function does the necessary processes for if the creature eats something. the amount of energy added should be decided by the size of the item
-        if item.__name__ == "Plant":
+        if item.__class__.__name__ == "Plant":
             self.species.updateChat("system: %s ate a plant" % (self.name))
             if(not self.characteristics["can eat poisonous plants"]):#sees if it is eating a plant and the creature can be killed by poisonous plants
                 if item.poisonous:
@@ -211,7 +223,7 @@ class Creature(Item):
             return
         for item in itemsInSight:
             #see if can mate and mate if so
-            if item.__name__ == self.__name__:#if it is also a creature
+            if item.__class__.__name__ == self.__class__.__name__:#if it is also a creature
                 if item.species == self.species:
                     if item.location != self.location:
                         self.calculateMove(item.location)
@@ -347,12 +359,12 @@ class Species:
 
     def getChat(self):
         #a function to get the unread chat and delete the read chat. This could be made more effecient by deleting the whole chat when it is read, however this is likely to potentially cause issues if there a functions running in different threads
-        chat = []#the chat to return, does not include the timestamps
+        chat = ""#the chat to return, does not include the timestamps
         for message in self.chat:
             if message[0] < self.chatLastRead:
                 del(message)
             else:
-                chat.append(message[1])
+                chat += "\n" + (message[1])
         self.chatLastRead = time.time()
         return chat
 
@@ -360,3 +372,32 @@ class Species:
         #updates the chat in the format (time, message)
         msg = (time.time(), message)
         self.chat.append(msg)
+
+
+class Ghost:
+
+    def __init__(self, chat, game):
+        self.chat = chat
+        self.game = game
+
+
+    def getChat(self):
+        #a function to get the unread chat and delete the read chat. This could be made more effecient by deleting the whole chat when it is read, however this is likely to potentially cause issues if there a functions running in different threads
+        chat = ""#the chat to return, does not include the timestamps
+        for message in self.chat:
+            if message[0] < self.chatLastRead:
+                del(message)
+            else:
+                chat += "\n" + (message[1])
+        self.chatLastRead = time.time()
+        return chat
+
+    def updateChat(self, message):
+        #updates the chat in the format (time, message)
+        msg = (time.time(), message)
+        self.chat.append(msg)
+
+    def sendMessage(self, message):
+        #sends a message to the global game chat, and therefore all players
+        message = self.ID + ": " + message
+        self.game.updateChat(message)
