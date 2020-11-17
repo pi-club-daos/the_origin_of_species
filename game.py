@@ -18,10 +18,21 @@ class Game:
         self.alivePlayers = 0
         self.maxPlayers = maxPlayers
         self.full = self.alivePlayers == self.maxPlayers
-        #tick needs to be called in a seperate thread and recalled every 1/tickspeed seconds
+
+    def getMapSize(self):
+        return self.mapsize
+
+    def addItem(self,item):
+        self.items.append(item)
+    def item(self, index):
+        return self.items[index]
+
+    def numItems(self):
+        return len(self.items)
 
     def getChat(self, ID):
         return self.players[ID].getChat()
+
     def generateMap(self, mapsize):
         #generate the map using simplex noise so it looks somewhat realistic if presented in a graphical interface. this should also mean that there are no open spaces that are shut off
         octaves = 1
@@ -56,12 +67,11 @@ class Game:
                     self.speciesIsDead(self.players[i])
                     break
 
-        #check if the player wants to quit or spectate. If they want to quit:
         #talk to the server about how they did in the game
         del(self.players[species.ID])
         species.updateChat("system: you came in %s place" % ((lambda n: "%d%s" % (n,"tsnrhtdd"[(n/10%10!=1)*(n%10<4)*n%10::4]))(self.alivePlayers + 1)))#ordinal number converter sourced from here: https://stackoverflow.com/questions/9647202/ordinal-numbers-replacement
 
-        self.players[species] = Ghost(species.chat, self)#replaces the player with a ghost that can still see the chat and send messages
+        self.players[species] = Ghost(species.getChat(), self)#replaces the player with a ghost that can still see the chat and send messages
         del(species)
 
 
@@ -97,14 +107,14 @@ class Game:
             space = (random.randint(0,self.mapsize), random.randint(0,self.mapsize))
             if self.map[space[0]][space[1]] == 0:
                 foundEmptySpace = True
-        self.items.append(Plant(self, space, random.randint(1,5), True if random.randint(0,10)==0 else False))#the numbers in the random generators are magic numbers and should be replaced with parameters/class variables
+        self.addItem(Plant(self, space, random.randint(1,5), True if random.randint(0,10)==0 else False))#the numbers in the random generators are magic numbers and should be replaced with parameters/class variables
 
     def updateChat(self, message):
         #updates the chat and updates the chat of every species in the format(time, message
         msg = (time.time(), message)
         self.chat.append(msg)
         for player in self.players:
-            player.chat.append(msg)
+            player.updateChat(msg)
 
 #the base class for all the different items/creatures that can exist in the game
 class Item:
@@ -112,6 +122,15 @@ class Item:
         self.location = location#this is the location of the item on the map
         self.game = game#this is the instance of the game class that the item belongs to. it allows the item to tell the game class to do certain things i.e. if a creature has offspring, a plant is eaten
         self.size = size#this is the size of the item, important for eating
+
+    def compareLocation(self, otherLocation):
+        return self.location == otherLocation
+
+    def getSize(self):
+        return self.size
+
+    def getLocation(self):
+        return self.location
 
     def isInSight(self, playerLoc):
         #this function checks if the item is visible by the player in playerLoc.
@@ -139,7 +158,6 @@ class Item:
 
 class Creature(Item):
     def __init__(self, game, location, size, name, species, characteristics, generation, minPointsEnergy, maxEnergy, ID):
-        self.gender = random.randint(0,1)# male = 0 female = 1 only females can have offspring and require a male to do this
         self.ID = (ID, name)#this is used for the family tree and is seperate to the species ID which is the player name. This includes the creature name to make the family tree more readable
         Item.__init__(self, game, location, size)
         self.name = name#a randomly generated name for the creature
@@ -147,13 +165,26 @@ class Creature(Item):
         self.species = species#the player who owns this creature
         self.characteristics = characteristics#the characteristics of the creature stored in a dictionary with their state i.e. for size this would be the size as a number
         self.energy = maxEnergy#the current energy of the creature. If this reaches zero the creature will die. It decreases with time and movement and increases by eating
-        self.offspring = []#this is a list of the IDs of the offspring of this creature. This enables the family tree to be created
+        self.offspring = []#this is a list of the IDs of the offspring of this creature. This enables the family tree to be created. Not implemented yet(probably never so remove if not implemented)
         self.generation = generation#the generation that this creature belongs to. Used by the creature class to decide if the player needs to decide new characteristics
         self.minPointsEnergy = minPointsEnergy#the amount of energy required to gain a point when move is called
         self.maxEnergy = maxEnergy#the the maximum energy the creature can have
-        self.isBaby = True#the creature is immobile when it is a baby
         self.nextLoc = location#the location that the creature will move to when move is called
         self.dist = 0
+
+    def getID(self):
+        return self.ID
+
+    def getName(self):
+        return self.name
+
+    def getSpecies(self):
+        return self.species
+
+    def characteristic(self, key):
+        return self.characteristics[key]
+
+
 
     def calculateMove(self, destination):
         #this function calculates the move for the creature. It will use pathfinding, and return the space that the player should move to based on the speed of the creature
@@ -185,7 +216,7 @@ class Creature(Item):
 
         else:
             self.species.updateChat("system: %s ate %s of species %s" % (self.name, item.name, item.species.ID))
-        self.energy += self.characteristics["energy per unit size"] * item.size
+        self.energy += self.characteristics["energy per unit size"] * item.getSize()
         item.eaten()
         if self.energy > self.maxEnergy:
             self.energy = self.maxEnergy
@@ -196,11 +227,13 @@ class Creature(Item):
         #this function queries the isInSight of every item and returns a list of all that return true, along with the distance
         itemsInSight = []
         distSquared = self.characteristics["maximum view dist squared"]
-        for item in self.game.items:
-            itemDist = item.isInSight(self.location)
+        for index in range(self.game.numItems()):
+            itemDist = self.game.item(index).isInSight(self.location)
             if itemDist > distSquared:
                 continue
-            itemsInSight.append((itemDist, item))
+            if self.game.item(index).__class__.__name__ == self.__class__.__name__:
+                if random.random() < self.game.item(index).characteristics["camoflague"]:
+                    itemsInSight.append((itemDist, self.game.item(index)))
         #sort itemsInSight here using a merge sort and remove the distances
         return itemsInSight
 
@@ -219,27 +252,27 @@ class Creature(Item):
         itemsInSight = self.getInformation()
         if len(itemsInSight) == 0:
             #moves towards a random place
-            self.calculateMove((random.randint(0,self.game.mapsize), random.randint(0,self.game.mapsize)))
+            self.calculateMove((random.randint(0,self.game.getMapSize()), random.randint(0,self.game.getMapSize())))
             return
         for item in itemsInSight:
             #see if can mate and mate if so
             if item.__class__.__name__ == self.__class__.__name__:#if it is also a creature
                 if item.species == self.species:
-                    if item.location != self.location:
-                        self.calculateMove(item.location)
+                    if not item.compareLocation(self.location):
+                        self.calculateMove(item.getLocation())
                         return
                     elif random.randint(0,self.characteristics["chance to have offspring"]) == 0:
                         self.haveOffspring()
                         return
-                elif item.canEat(self):#if it can eat you
+                elif item.canEat(self) and self.characteristics["can recognise predators"]:#if it can eat you
                     #run away. While it would make sense to run in the opposite direction this will involve multiple calculations which may take a long time to calculate so for now it will just run in a random direction. This could be described as emulation of panic. Running in the opposite direction should be tested when the game is complete to see if there is a notable performance hit, however.
-                    self.calculateMove((random.randint(0, self.game.mapsize), random.randint(0, self.game.mapsize)))
+                    self.calculateMove((random.randint(0, self.game.getMapSize()), random.randint(0, self.game.getMapSize())))
                     return
                 # see if can eat and eat if so. if animal must be carniverous and less than size can eat. if plant must be not poisonous if they have can see poison and not eat it
                 if self.characteristics["carnivorous"]:#if it can eat creatures
                     if self.canEat(item):#if it can eat this creature
-                        if item.location != self.location:#move towards it if they aren't in the same location
-                            self.calculateMove(item.location)
+                        if not item.compareLocation(self.location):#move towards it if they aren't in the same location
+                            self.calculateMove(item.getLocation())
                             return
                         else:
                             self.eat(item)
@@ -247,16 +280,16 @@ class Creature(Item):
             else:
                 #if it is not a creature it must be a plant
                 if self.characteristics["can eat poison"]:#if it can eat poisonous plants it should always eat the plant
-                    if item.location != self.location:
-                        self.calculateMove(item.location)
+                    if not item.compareLocation(self.location):
+                        self.calculateMove(item.getLocation())
                         return
                     else:
                         self.eat(item)
                         return
                 else:
                     if not(self.characteristics["can see poison"] or item.poionous):#if it can't see poison or the plant isn't poisonous eat the plant
-                        if item.location != self.location:
-                            self.calculateMove(item.location)
+                        if not item.compareLocation(self.location):
+                            self.calculateMove(item.getLocation)
                             return
                         else:
                             self.eat(item)
@@ -275,11 +308,12 @@ class Creature(Item):
         #this function does the necessary processes to check if this creature can eat the creature other.
         if other.species == self.species or not self.characteristics["carnivorous"]:
             return False
-        return other.size < self.characteristics["size can eat"] * self.size
+        return other.getSize < self.characteristics["size can eat"] * self.size
 
 
 
 class Plant(Item):
+    #change so poisonous is in a getter
     def __init__(self, game, location, size, poisonous):
         Item.__init__(self, game, location, size)
         self.poisonous = poisonous
@@ -287,16 +321,42 @@ class Plant(Item):
     def eaten(self, other):
         # this function does the neccessary processes for if the creature is eaten. It will only be called by the creature that ate it
         self.game.plantIsEaten(self)
+class Player:
+    #parent class for the classes controlled by the player (for now these are only ghost and species)
+    def __init__(self, chat, game):
+        self.chat = chat
+        self.game = game
+        self.chatLastRead = time.time()
 
 
-class Species:
+    def getChat(self):
+        #a function to get the unread chat and delete the read chat. This could be made more effecient by deleting the whole chat when it is read, however this is likely to potentially cause issues if there a functions running in different threads
+        chat = ""#the chat to return, does not include the timestamps
+        for message in self.chat:
+            if message[0] < self.chatLastRead:
+                del(message)
+            else:
+                chat += "\n" + (message[1])
+        self.chatLastRead = time.time()
+        return chat
+
+    def updateChat(self, message):
+        #updates the chat in the format (time, message)
+        msg = (time.time(), message)
+        self.chat.append(msg)
+
+    def sendMessage(self, message):
+        #sends a message to the global game chat, and therefore all players
+        message = self.ID + ": " + message
+        self.game.updateChat(message)
+
+class Species(Player):
 
     def __init__(self, ID, initialSize, game):
-        self.game = game
+        Player.__init__(self, [], game)
         self.creatureID = 0
         self.creatures = []#a list of all the living creatures in the species
         self.familytree = {}#a graph of all the dead creatures' IDs and
-        self.chat = []#a chat containing all of the events specific to this species
         self.ID = ID#the ID of this species that the player who is controlling this species needs to make actions
         self.characteristics = [{"speed" : 1,#the distance that the creature can move per step i time
                                 "maximum view dist squared" : 1,#the maximum distance that the creature can see, squared
@@ -315,19 +375,22 @@ class Species:
                                 }]#a list of the characteristics of each generation
         self.points = 100#the points of the species, used to purchase new characteristics. Characteristics cost more the more creatures there are. edit this number to change the number of points players start with
         self.size = [initialSize]#the size of members of the species as a list split by generations
-        self.chatLastRead = time.time()
+        self.needNewGeneration = True#change to be read with a getter
 
     def addOffspring(self, generation, parent):
         #adds a new offspring
         if(len(self.characteristics) < generation):
             #tell the server to ask the player to specify the characteristics for the next genreation. it will ignore this if it has already asked
+            self.needNewGeneration = True
             return#this means that the player hasn't specified the characteristics for this generation yet so this child can't be had.
-        if(len(self.characteristics) == generation):#this means that this creature will belong to the youngest generation
+        elif(len(self.characteristics) == generation):#this means that this creature will belong to the youngest generation
             #tell the server to ask the player to specify the characteristics for the next generation
-            pass
-        newCreature = Creature(self.game, parent.location, self.size[generation-1], self.generateRandomName(), self, self.characteristics[generation-1], generation, 50, 100, self.creatureID)#these are magic numbers and should be replaced
+            self.needNewGeneration = True
+        else:
+            self.needNewGeneration = False
+        newCreature = Creature(self.game, parent.getLocation(), self.size[generation-1], self.generateRandomName(), self, self.characteristics[generation-1], generation, 50, 100, self.creatureID)#these are magic numbers and should be replaced
         self.creatures.append(newCreature)
-        self.game.items.append(newCreature)
+        self.game.addItem(newCreature)
         self.creatureID += 1
 
 
@@ -336,7 +399,7 @@ class Species:
         return nameGeneration.generateName()
 
     def firstGeneration(self):
-        #a function that creates the first genereation of creatures and returns a list of them. The location must be a space on the map with a value of zero
+        #a function that creates the first generation of creatures and returns a list of them. The location must be a space on the map with a value of zero
 
         pass
 
@@ -344,60 +407,18 @@ class Species:
         #called by the server manager when the player responds with the characteristics they want
         #contains the processes so that the characteristics and size arrays are updated with the new characteristics
         self.size.append(size)
-        #make sure they can afford the characteristics
         self.characteristics.append(characteristics)
-
-    def sendMessage(self, message):
-        #sends a message to the global game chat, and therefore all players
-        message = self.ID + ": " + message
-        self.game.updateChat(message)
-    
+        self.characteristics.append(characteristics)
 
     def creatureIsKilled(self, creature):
         #removes the creature from creatures and adds it to the family tree
         self.familytree[creature.ID] = creature.offspring#this will likely need to be modified when the algorithm for displaying the family tree is implemented, or removed if it turns out that implemting a family tree is not practical in terms of processing time
 
-    def getChat(self):
-        #a function to get the unread chat and delete the read chat. This could be made more effecient by deleting the whole chat when it is read, however this is likely to potentially cause issues if there a functions running in different threads
-        chat = ""#the chat to return, does not include the timestamps
-        for message in self.chat:
-            if message[0] < self.chatLastRead:
-                del(message)
-            else:
-                chat += "\n" + (message[1])
-        self.chatLastRead = time.time()
-        return chat
-
-    def updateChat(self, message):
-        #updates the chat in the format (time, message)
-        msg = (time.time(), message)
-        self.chat.append(msg)
 
 
-class Ghost:
-
-    def __init__(self, chat, game):
-        self.chat = chat
-        self.game = game
 
 
-    def getChat(self):
-        #a function to get the unread chat and delete the read chat. This could be made more effecient by deleting the whole chat when it is read, however this is likely to potentially cause issues if there a functions running in different threads
-        chat = ""#the chat to return, does not include the timestamps
-        for message in self.chat:
-            if message[0] < self.chatLastRead:
-                del(message)
-            else:
-                chat += "\n" + (message[1])
-        self.chatLastRead = time.time()
-        return chat
-
-    def updateChat(self, message):
-        #updates the chat in the format (time, message)
-        msg = (time.time(), message)
-        self.chat.append(msg)
-
-    def sendMessage(self, message):
-        #sends a message to the global game chat, and therefore all players
-        message = self.ID + ": " + message
-        self.game.updateChat(message)
+class Ghost(Player):
+    #the class so the player can spectate after they are extinct.
+    #does not need any difference than parent class for now, but separate to allow for change.
+    pass

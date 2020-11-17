@@ -2,7 +2,6 @@ import game
 import string
 import time
 import random
-import math
 class ServerManager:
 
     def __init__(self):
@@ -116,22 +115,27 @@ class ServerManager:
 
     def checkForNewGeneration(self, ID):
         #this function should be called by the client when getChat is called and will tell them if they need to define a new generation, and how
-        return
+        if self.players[ID][2]:#if the player is in a game
+            if self.players[ID][2].players[self.players[ID][0]].needNewGeneration:
+                return self.players[ID][2].players[self.players[ID][0]].points#only the points need to be returned as the client should remember the last generation's characteristics
+        else:
+            return None#no new generation is needed
 
-    def newGeneration(self, characteristics, size):
+    def newGeneration(self, characteristics, size, ID):
         #this function should be called by the client when the player has defined a new generation
-        return
+        if self.checkCharacteristicsAreValid(characteristics, self.players[ID][2].players[self.players[ID][0]].points-size):
+            self.players[ID][2].players[self.players[ID][0]].newGeneration(characteristics, size)
+            return True
+        return False
 
-    def sendMessage(self, message):
+    def sendMessage(self, message, ID):
         #this function contains the processes for the message to be sent to all the players.
-        return
+        try:
+            self.players[ID][2].players[self.players[ID][0]].sendMessage(message)
+            return True
+        except:
+            print("someone tried to send a message and failed")
+            return False
 
-    def playerIsDead(self, place, playerID):
-        #this function contains the processes for when a player dies, and does the necessary processes so that the player is given any rewards they deserve. it should be called by the client as there is no incentive to fake this.
-        if self.players[playerID][2] == None:#this means the player wasn't in a game so couldn't have died
-            return
-        if self.players[playerID][2].alivePlayers > place:#this means that they can't have come in this position as there are more than this number of people remaining
-            self.players[playerID][2] = None#kicks them from the game
-            return
-        #do stuff here this function is not finished
-        return
+    def quitGame(self, ID):
+        self.players[ID][2] = None

@@ -57,17 +57,15 @@ def astar(grid, start, end):
             children.append(new)
             for child in children:
                 for node in closed:#if this square is already in closedList i.e is already in the path continue
-                    if child == closed:
+                    if child == node:
                         continue
-                child.g = current.g + 1 + grid[pos[0]][pos[1]] * 10#this encourages the algorithm to not walk over the terrain however it can if it is neccessary. This means that generally it will walk around however if a player is surrounded by terrain they won't be trapped.
+                child.g = current.g + max(1, grid[pos[0]][pos[1]] * 10000)#this encourages the algorithm to not walk over the terrain however it can if it is neccessary. This means that generally it will walk around however if a player is surrounded by terrain they won't be trapped.
                 child.h = (child.pos[0] - end.pos[0])+(child.pos[1] - end.pos[1])#many examples i have found online use pythagoras to find the distance however this requires a square root which is slow. because we are working on a grid and you can't move diagonally, this works just as well as it is the minimum distance possible.
                 child.f = child.g + child.h
                 for node in open:#don't bother with this if it is already in open with a lower g because that means there is a faster way to get to child
                     if child == node:
                         if child.g > node.g:
                             continue
-                        else:
-                            del(node)
 
                 open.append(child)
     raise Exception("could not traverse from start to end")
