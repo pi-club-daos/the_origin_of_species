@@ -14,22 +14,22 @@ request.form.get(
 def signUp():
     username = request.form[""]
     return
-@app.route('/login', methods = ["GET"])
+@app.route('/login', methods = ["PUT"])
 def login():
     return
-@app.route('/creategame', methods = ["GET"])
+@app.route('/creategame', methods = ["POST"])
 def createGame():
     return
-@app.route('/startgame', methods = ["GET"])
+@app.route('/startgame', methods = ["PUT"])
 def startGame():
     return
-@app.route('/joingame', methods = ["GET"])
+@app.route('/joingame', methods = ["PUT"])
 def joinGame():
     return
 @app.route('/unlockedtags', methods = ["GET"])
 def viewUnlockedTags():
     return
-@app.route('/edittag', methods = ["GET"])
+@app.route('/edittag', methods = ["PUT"])
 def editActiveTag():
     return
 @app.route('/getchat', methods = ["GET"])
@@ -38,9 +38,9 @@ def getChat():
 @app.route('/checkgeneration', methods = ["GET"])
 def checkForNewGeneration():
     return
-@app.route('/definegeneration', methods = ["GET"])
+@app.route('/definegeneration', methods = ["PUT"])
 def defineANewGeneration():
     return
-@app.route('/message', methods = ["GET"])
+@app.route('/message', methods = ["PUT"])
 def sendMessage():
     return
