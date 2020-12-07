@@ -400,12 +400,28 @@ class Species(Player):
 
     def firstGeneration(self):
         #a function that creates the first generation of creatures and returns a list of them. The location must be a space on the map with a value of zero
-
+        characteristics =  {"speed" : 1,#the distance that the creature can move per step i time
+                                "maximum view dist squared" : 1,#the maximum distance that the creature can see, squared
+                                 "size can eat" : 0,#the biggest size of creature that this creature can eat, as a ratio
+                                 "carnivorous":0,#if the creature can eat other creatures
+                                 "number of offspring" : 1,#the number of offspring that will be had by the creature when it has offspring
+                                 "time to grow up" : 100,#the number of steps in time it will take for the creature to be able to move
+                                 "energy per unit size" : 100,#the amount of energy that a different creature will gain when eating this creature. this should probably be fixed and not here.
+                                 "energy per distance moved" : 100,#also the amount of energy that will be used by the creature when it is moving
+                                 "lifespan" : 100,#the number of steps in time after which the creature will die of old age
+                                 "camouflage" : 0,#the chance that another creature won't see this animal. this includes mates
+                                 "can recognise predators": 0,#if the creature can see predators, and therefore run away
+                                 "can eat poison" : 0,#if the creature can eat poisonous plants
+                                 "can see poison" : 0,#if the creature can see poisonous plants so it knows not to eat them
+                                 "chance to have offspring" : 0#1/ the probability that an offspring will be had at a given opportunity
+                                }
+        self.newGeneration(characteristics, 1)
         pass
 
     def newGeneration(self, characteristics, size):
         #called by the server manager when the player responds with the characteristics they want
         #contains the processes so that the characteristics and size arrays are updated with the new characteristics
+
         self.size.append(size)
         self.characteristics.append(characteristics)
         self.characteristics.append(characteristics)

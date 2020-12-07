@@ -2,11 +2,11 @@ import game
 import string
 import time
 import random
-class ServerManager:
+class gameTest:
 
     def __init__(self):
-        self.games = {}#a dictionary with the key as the id of each games and the value as a tuple of the game instance and the time it was started at and the name of the creator
-        self.players = {}# a dictionary with the key as the string sent to the user when they log in and the value as a tuple of the player name and the time they logged in and the id of the game they are in
+        self.games = {}
+        self.players = {}
         self.newGenerations = {}# a dictionary with the key as the player name and the value as a tuple with the number of generations they need to choose characteristics for and the number of points they have and the existing characteristics
         self.characteristicsCost = {"speed" : (20, 0),#the distance that the creature can move per step i time
                                 "maximum view dist squared" : (1, 0),#the maximum distance that the creature can see, squared
@@ -51,7 +51,7 @@ class ServerManager:
                     return False
 
         #check that the characteristics cost the amount of points the player has
-        count = size * 10
+        count = size*10
         for characteristic in characteristics.keys():
             count += abs(self.characteristicsCost[characteristic][1] - characteristics[characteristic]) * self.characteristicsCost[characteristic][0]
         return count == points
@@ -69,20 +69,14 @@ class ServerManager:
         self.players[uniqueString] = (username, time.time(), None)
         return uniqueString
 
-    def getUsername(self, uniqueString):
-        return self.players[uniqueString][0]
-
-    def updateName(self, newName, playerID):
-        self.players[playerID] = (newName, self.players[playerID][1], self.players[playerID][2])
-
     def generateUniqueString(self, length):
         #method from here https://www.educative.io/edpresso/how-to-generate-a-random-string-in-python
         letters = string.ascii_letters
         return ''.join(random.choice(letters) for i in range(length))
 
-    def newGame(self, creatorID, maxPlayers):
+    def newGame(self, creator, maxPlayers):
         id = self.generateUniqueString(5)
-        self.games[id] = (game.Game(500, self, maxPlayers), time.time(), creatorID)
+        self.games[id] = (game.Game(500, self, maxPlayers), time.time(), creator)
         return id
 
     def joinGame(self, playerID, gameID):
@@ -96,11 +90,11 @@ class ServerManager:
             return True
         return False
 
-    def getChat(self, playerID):
-        if self.players[playerID][2]:
-            return self.players[playerID][2].getChat()
+    def getChat(self):
+        for player in self.players.keys():
+            print(self.players[player][2].getChat())
         else:
-            return "you aren't currently in a game im confused why you would ask this"
+            print( "you aren't currently in a game im confused why you would ask this" )
 
     def tick(self, timeBetweenTicks):
         #this function should be called in a seperate thread and will constantly tick the server
@@ -112,46 +106,35 @@ class ServerManager:
                     del(self.games[gameID])
                 else:
                     self.games[gameID][0].tick()
+                    self.checkForNewGeneration()
+                    self.getChat()
             if time.time() - timer < timeBetweenTicks:
                 time.sleep(timeBetweenTicks - (time.time() - timer))
             else:
                 #if this is ever reached then that means that the tick speed specified is too fast as the server cannot keep up.
                 print("error: server running slower than designated tick speed")
 
-    def checkForNewGeneration(self, ID):
+    def checkForNewGeneration(self,):
         #this function should be called by the client when getChat is called and will tell them if they need to define a new generation, and how
-        if self.players[ID][2]:#if the player is in a game
-            if self.players[ID][2].players[self.players[ID][0]].needNewGeneration:
-                return self.players[ID][2].players[self.players[ID][0]].points#only the points need to be returned as the client should remember the last generation's characteristics
+        for player in self.players.keys():
+            if self.players[player][2].players[self.players[player][0]].needNewGeneration:
+                print(self.players[player][2].players[self.players[player][0]].points)#only the points need to be returned as the client should remember the last generation's characteristics
+                characteristics = self.characteristicsCost.copy()
+                finished = False
+                while not finished:
+                    for key in characteristics.keys():
+                        characteristics[key] = input("enter your thing for characteristic" + key)
+                    finished = self.newGeneration(characteristics, player, int(input("enter size")), )
+                    if finished:
+                        pass
+
+
         else:
             return None#no new generation is needed
 
-    def newGeneration(self, characteristicslist, size, ID):
+    def newGeneration(self, characteristics, size, ID):
         #this function should be called by the client when the player has defined a new generation
-        characteristics = {"speed": 1,  # the distance that the creature can move per step i time
-                           "maximum view dist squared": 1,  # the maximum distance that the creature can see, squared
-                           "size can eat": 0,  # the biggest size of creature that this creature can eat, as a ratio
-                           "carnivorous": 0,  # if the creature can eat other creatures
-                           "number of offspring": 1,
-                           # the number of offspring that will be had by the creature when it has offspring
-                           "time to grow up": 100,
-                           # the number of steps in time it will take for the creature to be able to move
-                           "energy per unit size": 100,
-                           # the amount of energy that a different creature will gain when eating this creature. this should probably be fixed and not here.
-                           "energy per distance moved": 100,
-                           # also the amount of energy that will be used by the creature when it is moving
-                           "lifespan": 100,  # the number of steps in time after which the creature will die of old age
-                           "camouflage": 0,
-                           # the chance that another creature won't see this animal. this includes mates
-                           "can recognise predators": 0,  # if the creature can see predators, and therefore run away
-                           "can eat poison": 0,  # if the creature can eat poisonous plants
-                           "can see poison": 0,  # if the creature can see poisonous plants so it knows not to eat them
-                           "chance to have offspring": 0
-                           # 1/ the probability that an offspring will be had at a given opportunity
-                           }
-        for i, key in enumerate(characteristics.keys()):
-            characteristics[key] = characteristicslist[i]
-        if self.checkCharacteristicsAreValid(characteristics, self.players[ID][2].players[self.players[ID][0]].points, size):
+        if self.checkCharacteristicsAreValid(characteristics, self.players[ID][2].players[self.players[ID][0]].points-size, input("enter size")):
             self.players[ID][2].players[self.players[ID][0]].newGeneration(characteristics, size)
             return True
         return False
@@ -167,3 +150,6 @@ class ServerManager:
 
     def quitGame(self, ID):
         self.players[ID][2] = None
+
+gameManager = gameTest()
+players = [gameManager.logIn("player" + str(i)) for i in range(int(input("enter the number of players to add")))]
