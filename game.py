@@ -3,6 +3,7 @@ import random
 import noise
 import pathfinding
 import nameGeneration
+import mergeSort
 class Game:
     def __init__(self, mapsize, server, maxPlayers):
         self.started = False
@@ -18,6 +19,9 @@ class Game:
         self.alivePlayers = 0
         self.maxPlayers = maxPlayers
         self.full = self.alivePlayers == self.maxPlayers
+
+    def getPlayersByPoints(self):
+        return mergeSort.mergeSort(self.players).keys()
 
     def getMapSize(self):
         return self.mapsize
@@ -349,6 +353,8 @@ class Player:
         #sends a message to the global game chat, and therefore all players
         message = self.ID + ": " + message
         self.game.updateChat(message)
+    def getPoints(self):
+        return 0
 
 class Species(Player):
 
@@ -376,6 +382,8 @@ class Species(Player):
         self.points = 100#the points of the species, used to purchase new characteristics. Characteristics cost more the more creatures there are. edit this number to change the number of points players start with
         self.size = [initialSize]#the size of members of the species as a list split by generations
         self.needNewGeneration = True#change to be read with a getter
+    def getPoints(self):
+        return self.points
 
     def addOffspring(self, generation, parent):
         #adds a new offspring
