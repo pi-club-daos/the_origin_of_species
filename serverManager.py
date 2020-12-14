@@ -66,7 +66,7 @@ class ServerManager:
         for i in toDelete:
             del(self.players[i])
         uniqueString = self.generateUniqueString(50)
-        self.players[uniqueString] = (username, time.time(), None)
+        self.players[uniqueString] = [username, time.time(), None]
         return uniqueString
 
     def getUsername(self, uniqueString):
@@ -82,12 +82,12 @@ class ServerManager:
 
     def newGame(self, creatorID, maxPlayers):
         id = self.generateUniqueString(5)
-        self.games[id] = (game.Game(500, self, maxPlayers), time.time(), creatorID)
+        self.games[id] = [game.Game(500, self, maxPlayers), time.time(), self.players[creator][0]]
         return id
 
     def joinGame(self, playerID, gameID):
         self.games[gameID][0].addSpecies(self.players[playerID][0])
-        self.players[playerID][2] = self.games[gameID]
+        self.players[playerID][2] = self.games[gameID][0]
 
     def startGame(self, playerID, gameID):
         #this starts the game the player is in if the player is the creator
@@ -98,7 +98,7 @@ class ServerManager:
 
     def getChat(self, playerID):
         if self.players[playerID][2]:
-            return self.players[playerID][2].getChat()
+            return self.players[playerID][2].getChat(self.players[player][0])
         else:
             return "you aren't currently in a game im confused why you would ask this"
 
@@ -121,7 +121,7 @@ class ServerManager:
     def checkForNewGeneration(self, ID):
         #this function should be called by the client when getChat is called and will tell them if they need to define a new generation, and how
         if self.players[ID][2]:#if the player is in a game
-            if self.players[ID][2].players[self.players[ID][0]].needNewGeneration:
+            if self.players[ID][2].players[self.players[ID][0]].doesNeedNewGeneration:
                 return self.players[ID][2].players[self.players[ID][0]].points#only the points need to be returned as the client should remember the last generation's characteristics
         else:
             return None#no new generation is needed

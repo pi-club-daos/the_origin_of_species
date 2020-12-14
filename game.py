@@ -20,6 +20,15 @@ class Game:
         self.maxPlayers = maxPlayers
         self.full = self.alivePlayers == self.maxPlayers
 
+    def getRandomEmptySquare(self):
+        #it would be too costly to check if there was another creature spawned in this square so this only checks that the square is traversable
+        foundEmptySquare = False
+        xy = (0,0)
+        while not foundEmptySquare:
+            xy = (random.randint(0,self.mapsize-1), random.randint(0,self.mapsize-1))
+            foundEmptySquare = self.map[xy[0]][xy[1]] == 0
+        return xy
+
     def getPlayersByPoints(self):
         return mergeSort.mergeSort(self.players).keys()
 
@@ -57,10 +66,13 @@ class Game:
         self.alivePlayers += 1
         self.updateChat("system: %s has joined the game" % (ID))
         self.players[ID] = Species(ID, self.creatureSize, self)
-        self.items += self.players[ID].firstGeneration()
+        print(self.items)
+        self.players[ID].firstGeneration()
 
 
     def speciesIsDead(self, species):
+        if species.__class__.__name__ == "Ghost":
+            return
         #does the appropriate processes when a species dies, including updating the players profile
         self.alivePlayers -= 1
         self.updateChat("system: %s is extinct" % (species.ID))
@@ -75,24 +87,34 @@ class Game:
         del(self.players[species.ID])
         species.updateChat("system: you came in %s place" % ((lambda n: "%d%s" % (n,"tsnrhtdd"[(n/10%10!=1)*(n%10<4)*n%10::4]))(self.alivePlayers + 1)))#ordinal number converter sourced from here: https://stackoverflow.com/questions/9647202/ordinal-numbers-replacement
 
-        self.players[species] = Ghost(species.getChat(), self)#replaces the player with a ghost that can still see the chat and send messages
+        self.players[species.ID] = Ghost(species.getChat(), self, self.server.getUsername(species.ID))#replaces the player with a ghost that can still see the chat and send messages
         del(species)
 
 
     def tick(self):
+        print("game tick")
         #this increases the time and tells every item to make decisions, then tells every item to act on the decisions
         if not self.started:#this means time does not pass until the game has started
+            print("not started")
             return
         self.time += 1
         for item in self.items:
             item.makeDecisions()
         for item in self.items:
             item.move()
+        for species in self.players.keys():
+            if self.players[species].isExtinct():
+                self.speciesIsDead(species)
 
 
     def pathFind(self, loc1, loc2):
         #this function finds a path between two points and returns the path as a list of tuples
-        return pathfinding.astar(self.map, loc1, loc2)
+        #from testing the pathfinding algorithm it is too inefficient if the distance is more than 7, so if the distance is more than 7, a direct path will be chosen instead of a route calculated with a* pathfinding
+        if (loc1.pos[0] - loc2.pos[0])+(loc1.pos[1] - loc2.pos[1]) < 8:
+            return pathfinding.astar(self.map, loc1, loc2)
+        else:
+            return pathfinding.directRoute(loc1, loc2):
+
 
 
     def plantIsEaten(self, plant):
@@ -117,8 +139,8 @@ class Game:
         #updates the chat and updates the chat of every species in the format(time, message
         msg = (time.time(), message)
         self.chat.append(msg)
-        for player in self.players:
-            player.updateChat(msg)
+        for player in self.players.keys():
+            self.players[player].updateChat(message)
 
 #the base class for all the different items/creatures that can exist in the game
 class Item:
@@ -227,7 +249,7 @@ class Creature(Item):
 
 
 
-    def getInformation(self):
+    def getInformation(self) -> list:
         #this function queries the isInSight of every item and returns a list of all that return true, along with the distance
         itemsInSight = []
         distSquared = self.characteristics["maximum view dist squared"]
@@ -236,7 +258,7 @@ class Creature(Item):
             if itemDist > distSquared:
                 continue
             if self.game.item(index).__class__.__name__ == self.__class__.__name__:
-                if random.random() < self.game.item(index).characteristics["camoflague"]:
+                if random.random() < self.game.item(index).characteristics["camo"]:
                     itemsInSight.append((itemDist, self.game.item(index)))
         #sort itemsInSight here using a merge sort and remove the distances
         return itemsInSight
@@ -246,7 +268,7 @@ class Creature(Item):
         self.age += 1
         #see if is still a child
         if self.age < self.characteristics["time to grow up"]:
-            self.species.updateChat("system: %s grew up" % (self.name))
+            self.species.updateChat("system: %s is growing up" % (self.name))
             return
         #see if lifespan is up
         if self.age > self.characteristics["lifespan"]:
@@ -327,9 +349,10 @@ class Plant(Item):
         self.game.plantIsEaten(self)
 class Player:
     #parent class for the classes controlled by the player (for now these are only ghost and species)
-    def __init__(self, chat, game):
+    def __init__(self, chat, game, ID):
         self.chat = chat
         self.game = game
+        self.ID = ID
         self.chatLastRead = time.time()
 
 
@@ -340,7 +363,7 @@ class Player:
             if message[0] < self.chatLastRead:
                 del(message)
             else:
-                chat += "\n" + (message[1])
+                chat += "\n" + message[1]
         self.chatLastRead = time.time()
         return chat
 
@@ -359,12 +382,11 @@ class Player:
 class Species(Player):
 
     def __init__(self, ID, initialSize, game):
-        Player.__init__(self, [], game)
+        Player.__init__(self, [], game, ID)
         self.creatureID = 0
         self.creatures = []#a list of all the living creatures in the species
         self.familytree = {}#a graph of all the dead creatures' IDs and
-        self.ID = ID#the ID of this species that the player who is controlling this species needs to make actions
-        self.characteristics = [{"speed" : 1,#the distance that the creature can move per step i time
+        self.characteristics = [{"speed" : 3,#the distance that the creature can move per step i time
                                 "maximum view dist squared" : 1,#the maximum distance that the creature can see, squared
                                  "size can eat" : 0,#the biggest size of creature that this creature can eat, as a ratio
                                  "carnivorous":False,#if the creature can eat other creatures
@@ -373,7 +395,7 @@ class Species(Player):
                                  "energy per unit size" : 100,#this is a magic number. also the amount of energy that a different creature will gain when eating this creature. this should probably be fixed and not here.
                                  "energy per distance moved" : 100,#this is a magic number. also the amount of energy that will be used by the creature when it is moving
                                  "lifespan" : 0,#the number of steps in time after which the creature will die of old age
-                                 "camouflage" : 0,#the chance that another creature won't see this animal. this includes mates
+                                 "camo" : 0,#the chance that another creature won't see this animal. this includes mates
                                  "can recognise predators": False,#if the creature can see predators, and therefore run away
                                  "can eat poison" : False,#if the creature can eat poisonous plants
                                  "can see poison" : False,#if the creature can see poisonous plants so it knows not to eat them
@@ -382,6 +404,8 @@ class Species(Player):
         self.points = 100#the points of the species, used to purchase new characteristics. Characteristics cost more the more creatures there are. edit this number to change the number of points players start with
         self.size = [initialSize]#the size of members of the species as a list split by generations
         self.needNewGeneration = True#change to be read with a getter
+    def doesNeedNewGeneration(self):
+        return self.needNewGeneration
     def getPoints(self):
         return self.points
 
@@ -396,9 +420,13 @@ class Species(Player):
             self.needNewGeneration = True
         else:
             self.needNewGeneration = False
-        newCreature = Creature(self.game, parent.getLocation(), self.size[generation-1], self.generateRandomName(), self, self.characteristics[generation-1], generation, 50, 100, self.creatureID)#these are magic numbers and should be replaced
+        if parent:
+            newCreature = Creature(self.game, parent.getLocation(), self.size[generation-1], self.generateRandomName(), self, self.characteristics[generation-1], generation, 50, 100, self.creatureID)#these are magic numbers and should be replaced
+        else:
+            newCreature = Creature(self.game, self.game.getRandomEmptySquare(), self.size[generation - 1], self.generateRandomName(), self, self.characteristics[generation - 1], generation, 50, 100, self.creatureID)  # these are magic numbers and should be replaced
         self.creatures.append(newCreature)
         self.game.addItem(newCreature)
+        print(newCreature)
         self.creatureID += 1
 
 
@@ -408,22 +436,25 @@ class Species(Player):
 
     def firstGeneration(self):
         #a function that creates the first generation of creatures and returns a list of them. The location must be a space on the map with a value of zero
-        characteristics =  {"speed" : 1,#the distance that the creature can move per step i time
+        characteristics =  {"speed" : 2,#the distance that the creature can move per step i time
                                 "maximum view dist squared" : 1,#the maximum distance that the creature can see, squared
                                  "size can eat" : 0,#the biggest size of creature that this creature can eat, as a ratio
                                  "carnivorous":0,#if the creature can eat other creatures
                                  "number of offspring" : 1,#the number of offspring that will be had by the creature when it has offspring
-                                 "time to grow up" : 100,#the number of steps in time it will take for the creature to be able to move
+                                 "time to grow up" : 30,#the number of steps in time it will take for the creature to be able to move
                                  "energy per unit size" : 100,#the amount of energy that a different creature will gain when eating this creature. this should probably be fixed and not here.
                                  "energy per distance moved" : 100,#also the amount of energy that will be used by the creature when it is moving
                                  "lifespan" : 100,#the number of steps in time after which the creature will die of old age
-                                 "camouflage" : 0,#the chance that another creature won't see this animal. this includes mates
+                                 "camo" : 0,#the chance that another creature won't see this animal. this includes mates
                                  "can recognise predators": 0,#if the creature can see predators, and therefore run away
                                  "can eat poison" : 0,#if the creature can eat poisonous plants
                                  "can see poison" : 0,#if the creature can see poisonous plants so it knows not to eat them
                                  "chance to have offspring" : 0#1/ the probability that an offspring will be had at a given opportunity
                                 }
         self.newGeneration(characteristics, 1)
+        numToStart = 3#magic number
+        [self.addOffspring(0,None) for i in range(numToStart)]
+
         pass
 
     def newGeneration(self, characteristics, size):
@@ -438,6 +469,10 @@ class Species(Player):
         #removes the creature from creatures and adds it to the family tree
         self.familytree[creature.ID] = creature.offspring#this will likely need to be modified when the algorithm for displaying the family tree is implemented, or removed if it turns out that implemting a family tree is not practical in terms of processing time
 
+    def isExtinct(self):
+        if len(self.creatures) == 0:
+            return True
+        return False
 
 
 

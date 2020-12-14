@@ -8,5 +8,5 @@ def generateName():
     f = open("first-names.txt")#open the file
     f.seek(offset)#go to the offset
     f.readline()#go to the next line because the offset is probably in the middle of this one
-    return f.readline()
+    return f.readline().strip("\n")
 

@@ -66,7 +66,7 @@ class gameTest:
         for i in toDelete:
             del(self.players[i])
         uniqueString = self.generateUniqueString(50)
-        self.players[uniqueString] = (username, time.time(), None)
+        self.players[uniqueString] = [username, time.time(), None]
         return uniqueString
 
     def generateUniqueString(self, length):
@@ -76,12 +76,12 @@ class gameTest:
 
     def newGame(self, creator, maxPlayers):
         id = self.generateUniqueString(5)
-        self.games[id] = (game.Game(500, self, maxPlayers), time.time(), creator)
+        self.games[id] = [game.Game(500, self, maxPlayers), time.time(), self.players[creator][0]]
         return id
 
     def joinGame(self, playerID, gameID):
         self.games[gameID][0].addSpecies(self.players[playerID][0])
-        self.players[playerID][2] = self.games[gameID]
+        self.players[playerID][2] = self.games[gameID][0]
 
     def startGame(self, playerID, gameID):
         #this starts the game the player is in if the player is the creator
@@ -92,9 +92,10 @@ class gameTest:
 
     def getChat(self):
         for player in self.players.keys():
-            print(self.players[player][2].getChat())
-        else:
-            print( "you aren't currently in a game im confused why you would ask this" )
+            if self.players[player][2]:
+                print(self.players[player][2].getChat(self.players[player][0]))
+            else:
+                print( "you aren't currently in a game im confused why you would ask this" )
 
     def tick(self, timeBetweenTicks):
         #this function should be called in a seperate thread and will constantly tick the server
@@ -105,10 +106,12 @@ class gameTest:
                 if self.games[gameID][1] - time.time() > 10800:#this means that if a game is older than 3 hours it will be deleted. this may need to be extended and is a magic number
                     del(self.games[gameID])
                 else:
+
                     self.games[gameID][0].tick()
                     self.checkForNewGeneration()
                     self.getChat()
             if time.time() - timer < timeBetweenTicks:
+                print("sleeping")
                 time.sleep(timeBetweenTicks - (time.time() - timer))
             else:
                 #if this is ever reached then that means that the tick speed specified is too fast as the server cannot keep up.
@@ -117,7 +120,7 @@ class gameTest:
     def checkForNewGeneration(self,):
         #this function should be called by the client when getChat is called and will tell them if they need to define a new generation, and how
         for player in self.players.keys():
-            if self.players[player][2].players[self.players[player][0]].needNewGeneration:
+            if self.players[player][2].players[self.players[player][0]].doesNeedNewGeneration():
                 print(self.players[player][2].players[self.players[player][0]].points)#only the points need to be returned as the client should remember the last generation's characteristics
                 characteristics = self.characteristicsCost.copy()
                 finished = False
@@ -153,3 +156,9 @@ class gameTest:
 
 gameManager = gameTest()
 players = [gameManager.logIn("player" + str(i)) for i in range(int(input("enter the number of players to add")))]
+
+id = gameManager.newGame(players[0], 1000)
+for i in players:
+    gameManager.joinGame(i, id)
+gameManager.startGame(players[0], id)
+gameManager.tick(0.5)
