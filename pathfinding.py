@@ -40,11 +40,13 @@ def astar(grid, start, end):
     open = []
     closed = []
     heapq.heappush(open, start)#adds the start node to the open list
+    count = 0
     while len(open) > 0:
+        count +=1
         current = heapq.heappop(open)
         closed.append(current)
         #sees if we have found end and then takes the path backwards and reverses the path to find the correct route
-        if current == end:
+        if current == end or count == 500:
             path = deque()
             while current:
                 path.append(current.pos)
@@ -55,23 +57,24 @@ def astar(grid, start, end):
         children = deque()
         for new_pos in [(-1, 0), (0, -1), (0, 1), (1, 0)]:#these are the adjacent squares vertically and horizontally
             pos = (current.pos[0] + new_pos[0], current.pos[1] + new_pos[1])
-            if pos[0] > (len(grid)-1) or pos[0] < 0 or pos[1] > (len(grid[0])-1) or pos[1] < 0:#if the position is out of the maze continue to the next iteration
+            if pos[0] > (len(grid)-1) or pos[0] < 0 or pos[1] > (len(grid[0])-1) or pos[1] < 0 or grid[pos[0]][pos[1]]:#if the position is out of the maze continue to the next iteration
                 continue
             new = Node(parent=current, pos=pos)
             children.append(new)
         for child in children:
-            if grid[pos[0]][pos[1]]:
+
+            if child in closed:
                 continue
-            for node in closed:#if this square is already in closedList i.e is already in the path continue
-                if child == node:
-                    continue
             child.g = current.g + 1
             child.h = abs(end.pos[0] - child.pos[0])+abs(end.pos[1] - child.pos[1])#many examples i have found online use pythagoras to find the distance however this requires a square root which is slow. because we are working on a grid and you can't move diagonally, this works just as well as it is the minimum distance possible.
             child.f = child.g + child.h
-            for node in open:  # don't bother with this if it is already in open with a lower g because that means there is a faster way to get to child
-                if child == node:
-                    if child.g > node.g:
-                        continue
+            if child in open:
+                new_child = open[open.index(child)]
+                if child.g > new_child.g:
+                    new_child.g = child.g
+                    new_child.parent = child.parent
+                    new_child.f = child.f
+                    continue
             heapq.heappush(open, child)
     raise Exception("could not traverse from start to end")
 
@@ -80,8 +83,6 @@ def directRoute(start, end):
     yDist = end[1] - start[1]
     xSign = (xDist >> 31)*(2) + 1
     ySign = (yDist >> 31)*(2) + 1
-    print(xSign)
-    print(ySign)
     route = []
     for i in range(abs(xDist)+1):
         route.append([start[0] + xSign * i, start[1]])

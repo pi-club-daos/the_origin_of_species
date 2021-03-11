@@ -9,7 +9,7 @@ class gameTest:
         self.players = {}
         self.newGenerations = {}# a dictionary with the key as the player name and the value as a tuple with the number of generations they need to choose characteristics for and the number of points they have and the existing characteristics
         self.characteristicsCost = {"speed" : (20, 0),#the distance that the creature can move per step i time
-                                "maximum view dist squared" : (1, 0),#the maximum distance that the creature can see, squared
+                                "maximum view dist squared" : (2, 0),#the maximum distance that the creature can see, squared
                                  "size can eat" : (1000, 0),#the biggest size of creature that this creature can eat, as a ratio
                                  "carnivorous":(100, 0),#if the creature can eat other creatures
                                  "number of offspring" : (50, 0),#the number of offspring that will be had by the creature when it has offspring
@@ -43,6 +43,8 @@ class gameTest:
     def checkCharacteristicsAreValid(self, characteristics, points, size):
         #check that all the characteristics are less than the maxCharacteristics
         for characteristic in characteristics.keys():
+            if type(characteristic) != type(100):
+                return False
             if self.maxCharacteristics[characteristics][1]:
                 if characteristics[characteristic] > self.maxCharacteristics[characteristics][0]:
                     return False
@@ -55,6 +57,9 @@ class gameTest:
         for characteristic in characteristics.keys():
             count += abs(self.characteristicsCost[characteristic][1] - characteristics[characteristic]) * self.characteristicsCost[characteristic][0]
         return count == points
+
+    def getUsername(self, uniqueString):
+        return self.players[uniqueString][0]
 
     def logIn(self, username):
         #the password will have already been checked in the flask file with the database
@@ -76,7 +81,7 @@ class gameTest:
 
     def newGame(self, creator, maxPlayers):
         id = self.generateUniqueString(5)
-        self.games[id] = [game.Game(500, self, maxPlayers), time.time(), self.players[creator][0]]
+        self.games[id] = [game.Game(50, self, maxPlayers), time.time(), self.players[creator][0]]
         return id
 
     def joinGame(self, playerID, gameID):
@@ -120,6 +125,8 @@ class gameTest:
     def checkForNewGeneration(self,):
         #this function should be called by the client when getChat is called and will tell them if they need to define a new generation, and how
         for player in self.players.keys():
+            if self.players[player][2].players[self.players[player][0]].__class__.__name__ == "Ghost":
+                continue
             if self.players[player][2].players[self.players[player][0]].doesNeedNewGeneration():
                 print(self.players[player][2].players[self.players[player][0]].points)#only the points need to be returned as the client should remember the last generation's characteristics
                 characteristics = self.characteristicsCost.copy()
@@ -128,8 +135,7 @@ class gameTest:
                     for key in characteristics.keys():
                         characteristics[key] = input("enter your thing for characteristic" + key)
                     finished = self.newGeneration(characteristics, player, int(input("enter size")), )
-                    if finished:
-                        pass
+
 
 
         else:
@@ -157,7 +163,7 @@ class gameTest:
 gameManager = gameTest()
 players = [gameManager.logIn("player" + str(i)) for i in range(int(input("enter the number of players to add")))]
 
-id = gameManager.newGame(players[0], 1000)
+id = gameManager.newGame(players[0], 50)
 for i in players:
     gameManager.joinGame(i, id)
 gameManager.startGame(players[0], id)

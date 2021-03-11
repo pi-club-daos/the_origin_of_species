@@ -9,6 +9,13 @@ def runStatement(statement):
         #probably log the error here
         return False
 
+def checkIfNameIsTaken(name):
+    statement = f"""
+SELECT Username
+From Players
+WHERE Username = {name}
+"""
+    return len(runStatement())===0#check that this is what I need to do here when the runstatement() function is implemented.
 
 def getActiveCosmetic(username):
     statement = f"""

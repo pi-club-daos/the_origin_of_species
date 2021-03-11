@@ -13,9 +13,10 @@ def generateMap(mapsize):
 size = 500
 map = generateMap(size)
 timer = time.time()
-path = pathfinding.astar(map, (50,30), (60,60))
+path = pathfinding.astar(map, (50,30), (400,300))
+
 for i in path:
-    map[i[1]][i[0]] = "2"
+    map[i[0]][i[1]] = "2"
 with open("test.pgm", "w+") as myfile:
     string = f"P2 {len(map[0])} {len(map)} 2 "
     for i in map:

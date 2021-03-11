@@ -2,9 +2,11 @@ import game
 import string
 import time
 import random
+import threading
 class ServerManager:
 
     def __init__(self):
+        self.lock = threading.Lock()
         self.games = {}#a dictionary with the key as the id of each games and the value as a tuple of the game instance and the time it was started at and the name of the creator
         self.players = {}# a dictionary with the key as the string sent to the user when they log in and the value as a tuple of the player name and the time they logged in and the id of the game they are in
         self.newGenerations = {}# a dictionary with the key as the player name and the value as a tuple with the number of generations they need to choose characteristics for and the number of points they have and the existing characteristics
