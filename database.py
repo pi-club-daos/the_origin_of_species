@@ -34,8 +34,6 @@ SELECT Username
 From Players
 WHERE Username = '{name}'
     """
-    print("---")
-    print(runStatement(statement))
     return len(runStatement(statement))==0#check that this is what I need to do here when the runstatement() function is implemented.
 
 def getActiveCosmetic(username):
@@ -47,7 +45,7 @@ ON Players.ActiveCosmetic = Cosmetics.CosmeticID
 WHERE Player.Username = '{username}';
     
         """
-    return runStatement(statement)[0]
+    return runStatement(statement)[0][0]
 
 def verifyPassword(username, password):
     statement = f"""
@@ -56,7 +54,7 @@ FROM Players
 WHERE Username = '{username}';
 """
     print(runStatement(statement))
-    return password == runStatement(statement)[0]
+    return password == runStatement(statement)[0][0]
 
 def getUnlockedCosmetics(username):
     statement = f"""
@@ -65,7 +63,7 @@ FROM UnlockedCosmetics
 WHERE Username = '{username}';
 
 """
-    return runStatement(statement)
+    return runStatement(statement)[0]
 
 def getLeaderboard(numPlayers):
     statement = f"""
@@ -74,15 +72,15 @@ FROM Players
 ORDERBY Points DESC 
 LIMIT {numPlayers};
 """
-    return runStatement(statement)
+    return runStatement(statement)[0]
 
 def addNewUser(username, password):
     statement = f"""
 INSERT INTO Players (Username, Password, Points, activeCosmetic)
 VALUES ('{username}', '{password}', 0, 0);
 """
-    runStatement(statement)
-    return  False != False
+
+    return  runStatement(statement) != False
 
 def changeActiveCosmetic(username, newCosmeticID):
     statement = f"""
