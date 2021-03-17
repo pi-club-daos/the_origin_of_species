@@ -1,11 +1,30 @@
-
+import sqlite3
 
 def runStatement(statement):
     #run the sql statement
     try:
-        result = ""
-        return result
-    except:
+        conn = sqlite3.connect('data.db')
+        cursor = conn.execute(statement)
+        conn.commit()
+        #conn.close()
+        return list(cursor)
+    except Exception as e:
+        print(e)
+        #probably log the error here
+        return False
+def runStatements(statements):
+    #run the sql statement
+    try:
+        conn = sqlite3.connect('data.db')
+        results = []
+        for statement in statements:
+            cursor = conn.execute(statement)
+            conn.commit()
+            print(list(cursor))
+            results.append(list(cursor)[0])
+        return results
+    except Exception as e:
+        print(e)
         #probably log the error here
         return False
 
@@ -13,9 +32,11 @@ def checkIfNameIsTaken(name):
     statement = f"""
 SELECT Username
 From Players
-WHERE Username = {name}
-"""
-    return len(runStatement())===0#check that this is what I need to do here when the runstatement() function is implemented.
+WHERE Username = '{name}'
+    """
+    print("---")
+    print(runStatement(statement))
+    return len(runStatement(statement))==0#check that this is what I need to do here when the runstatement() function is implemented.
 
 def getActiveCosmetic(username):
     statement = f"""
@@ -23,24 +44,25 @@ def getActiveCosmetic(username):
 FROM Cosmetics
 INNER JOIN Players
 ON Players.ActiveCosmetic = Cosmetics.CosmeticID
-WHERE Player.Username = “{username}”;
+WHERE Player.Username = '{username}';
     
         """
-    return runStatement(statement)
+    return runStatement(statement)[0]
 
 def verifyPassword(username, password):
     statement = f"""
 SELECT Password
 FROM Players
-WHERE Username = “{username}”;
+WHERE Username = '{username}';
 """
-    return password == runStatement(statement)
+    print(runStatement(statement))
+    return password == runStatement(statement)[0]
 
 def getUnlockedCosmetics(username):
     statement = f"""
 SELECT CosmeticID
 FROM UnlockedCosmetics
-WHERE Username = “{username}”;
+WHERE Username = '{username}';
 
 """
     return runStatement(statement)
@@ -56,50 +78,51 @@ LIMIT {numPlayers};
 
 def addNewUser(username, password):
     statement = f"""
-INSERT INTO Players 
-VALUES (“{username}”, “{password}”, 0, 0);
+INSERT INTO Players (Username, Password, Points, activeCosmetic)
+VALUES ('{username}', '{password}', 0, 0);
 """
-    return runStatement(statement) != False
+    runStatement(statement)
+    return  False != False
 
 def changeActiveCosmetic(username, newCosmeticID):
     statement = f"""
 UPDATE Players
-SET ActiveCosmetic = “{newCosmeticID}”
-WHERE Username = “{username}”;
+SET ActiveCosmetic = '{newCosmeticID}'
+WHERE Username = '{username}'';
 """
     return runStatement(statement) != False
 
 def unlockNewCosmetic(username, cosmeticID):
     statement = f"""
 INSERT INTO UnlockedCosmetics
-VALUES(“{username}”, “{cosmeticID}”);
+VALUES('{username}', '{cosmeticID}');
 """
     return runStatement(statement) != False
 
 
 def createTables():
-    statement = """
+    statements = ["""
 CREATE TABLE Players (
 Username VARCHAR(30) NOT NULL,
 Password VARCHAR(100) NOT NULL,
 Points BIGINT(255) NOT NULL,
 activeCosmetic INT(255) NOT NULL,
 PRIMARY KEY (Username)
-);
-
+);""",
+"""
 CREATE TABLE Cosmetics(
 CosmeticID INT(255) NOT NULL,
 CosmeticValue VARCHAR(100) NOT NULL,
 PRIMARY KEY (CosmeticID)
-);
-
+);""",
+"""
 CREATE TABLE UnlockedCosmetics(
 Username VARCHAR(30) NOT NULL,
 CosmeticID INT(255) NOT NULL,
 PRIMARY KEY (Username)
 );
 
-    """
-    return runStatement(statement) != False
+    """]
+    return runStatements(statements) != False
 
 

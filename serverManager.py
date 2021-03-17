@@ -107,6 +107,7 @@ class ServerManager:
     def tick(self, timeBetweenTicks):
         #this function should be called in a seperate thread and will constantly tick the server
         while True:
+            #print("hey1")
             timer = time.time()
             #if security is a concern(which it currently isn't) you would check that all of the players haven't been logged in for too long
             for gameID in self.games:

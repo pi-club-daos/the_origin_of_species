@@ -63,7 +63,7 @@ def joinGame():
 
 @app.route('/unlockedtags', methods = ["GET"])
 def viewUnlockedTags():
-    uniqueString = request.form["unqstr"]
+    uniqueString = request.args.get("unqstr")
     global server
     server.lock.acquire()
     value = database.getUnlockedCosmetics(server.getUsername(uniqueString))
@@ -83,7 +83,7 @@ def editActiveTag():
 
 @app.route('/getchat', methods = ["GET"])
 def getChat():
-    uniqueString = request.form["unqstr"]
+    uniqueString = request.args.get("unqstr")
     global server
     server.lock.acquire()
     value = server.getChat(uniqueString)
@@ -92,7 +92,7 @@ def getChat():
 
 @app.route('/checkgeneration', methods = ["GET"])
 def checkForNewGeneration():
-    uniqueString = request.form["unqstr"]
+    uniqueString = request.args.get("unqstr")
     global server
     server.lock.acquire()
     value = server.checkForNewGeneration(uniqueString)
@@ -121,18 +121,51 @@ def sendMessage():
 
 @app.route('/checkname', methods = ["GET"])
 def checkName():
-    name = request.form["name"]
+    print("hey")
+    name = request.args.get("name")
     return str(database.checkIfNameIsTaken(name))
+@app.before_request
+def runBeforeEachRequest():
+    #ticker(1)
+    pass
+
 server = serverManager.ServerManager()
-def ticker(timePerTick):
+def asyncticker(timePerTick):
     prevtime = time.time()
     global server
     while True:
+        print(".")
         newTime = time.time()
         timeBetweenTicks = newTime - prevtime
         prevtime = newTime
         server.lock.acquire()
-        server.tick(timeBetweenTicks)
+        server.tick(timePerTick)
         server.lock.release()
         time.sleep(timePerTick - timeBetweenTicks)
-ticker(1)
+def ticker(timePerTick):
+    prevtime = time.time()
+    print("hey1")
+    global server
+    global running
+    if running:
+        return
+    else:
+        running = True
+    print("hey2")
+    server.lock.acquire()
+    server.tick(timePerTick)
+    print("hey3")
+    server.lock.release()
+    newTime = time.time()
+    timeBetweenTicks = newTime - prevtime
+    time.sleep(max(0,timePerTick - timeBetweenTicks))
+    running = False
+    print(running)
+    print("---")
+
+running = False
+if __name__ == "__main__":
+    t1 = threading.Thread(target=app.run, kwargs={"threading":True})
+    t1.start()
+t2 = threading.Thread(target = server.tick, args = (1,))
+t2.start()
