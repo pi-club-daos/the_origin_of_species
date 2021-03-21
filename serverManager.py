@@ -41,7 +41,55 @@ class ServerManager:
                                  "can see poison" : (1, True),#if the creature can see poisonous plants so it knows not to eat them
                                  "chance to have offspring" : (0.75, True)#1/ the probability that an offspring will be had at a given opportunity
                                 }#a dictionary for the max values of each characteristic. is False if it is a minimum
-
+    
+    @property
+    def maxCharacteristics(self):
+        return self.__maxCharacteristics
+    
+    @maxCharacteristics.setter
+    def maxCharacteristics(self, value):
+        self.__maxCharacteristics = value
+    
+    @property
+    def characteristicsCost(self):
+        return self.__characteristicsCost
+    
+    @characteristicsCost.setter
+    def characteristicsCost(self, value):
+        self.__characteristicsCost = value
+    
+    @property
+    def newGenerations(self):
+        return self.__newGenerations
+    
+    @newGenerations.setter
+    def newGenerations(self, value):
+        self.__newGenerations = value
+    
+    @property
+    def players(self):
+        return self.__players
+    
+    @players.setter
+    def players(self, value):
+        self.__players = value
+    
+    @property
+    def games(self):
+        return self.__games
+    
+    @games.setter
+    def games(self, value):
+        self.__games = value
+    
+    @property
+    def lock(self):
+        return self.__lock
+    
+    @lock.setter
+    def lock(self, value):
+        self.__lock = value
+        
     def checkCharacteristicsAreValid(self, characteristics, points, size):
         #check that all the characteristics are less than the maxCharacteristics
         for characteristic in characteristics.keys():

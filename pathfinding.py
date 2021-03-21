@@ -17,6 +17,30 @@ class Node:
         self.g = 0
         self.h = 0
 
+    @property
+    def h(self):
+        return self.__h
+
+    @h.setter
+    def h(self, value):
+        self.__h = value
+
+    @property
+    def g(self):
+        return self.__g
+
+    @g.setter
+    def g(self, value):
+        self.__g = value
+
+    @property
+    def f(self):
+        return self.__f
+
+    @f.setter
+    def f(self, value):
+        self.__f = value
+
     def __eq__(self, other):
         return self.pos == other.pos
 
