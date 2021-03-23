@@ -1,3 +1,5 @@
+import mylogging
+@mylogging.log
 def mergeSort(playersDict):
     arr = playersDict.items()
     arr1 = []
@@ -13,7 +15,7 @@ def mergeSort(playersDict):
 
     return arr1
 
-
+@mylogging.log
 def merge(arr1, arr2):
     arr3 = []
     try:

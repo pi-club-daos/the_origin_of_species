@@ -3,8 +3,9 @@ import string
 import time
 import random
 import threading
+import mylogging
 class ServerManager:
-
+    @mylogging.log
     def __init__(self):
         self.lock = threading.Lock()
         self.games = {}#a dictionary with the key as the id of each games and the value as a tuple of the game instance and the time it was started at and the name of the creator
@@ -41,55 +42,68 @@ class ServerManager:
                                  "can see poison" : (1, True),#if the creature can see poisonous plants so it knows not to eat them
                                  "chance to have offspring" : (0.75, True)#1/ the probability that an offspring will be had at a given opportunity
                                 }#a dictionary for the max values of each characteristic. is False if it is a minimum
-    
+
+    @mylogging.log
     @property
     def maxCharacteristics(self):
         return self.__maxCharacteristics
-    
+
+    @mylogging.log
     @maxCharacteristics.setter
     def maxCharacteristics(self, value):
         self.__maxCharacteristics = value
-    
+
+    @mylogging.log
     @property
     def characteristicsCost(self):
         return self.__characteristicsCost
-    
+
+    @mylogging.log
     @characteristicsCost.setter
     def characteristicsCost(self, value):
         self.__characteristicsCost = value
-    
+
+    @mylogging.log
     @property
     def newGenerations(self):
         return self.__newGenerations
-    
+
+    @mylogging.log
     @newGenerations.setter
     def newGenerations(self, value):
         self.__newGenerations = value
-    
+
+    @mylogging.log
     @property
     def players(self):
         return self.__players
-    
+
+    @mylogging.log
     @players.setter
     def players(self, value):
         self.__players = value
-    
+
+    @mylogging.log
     @property
     def games(self):
         return self.__games
-    
+
+    @mylogging.log
     @games.setter
     def games(self, value):
         self.__games = value
-    
+
+    @mylogging.log
     @property
     def lock(self):
         return self.__lock
-    
+
+    @mylogging.log
     @lock.setter
     def lock(self, value):
         self.__lock = value
-        
+
+    @mylogging.log
     def checkCharacteristicsAreValid(self, characteristics, points, size):
         #check that all the characteristics are less than the maxCharacteristics
         for characteristic in characteristics.keys():
@@ -106,6 +120,7 @@ class ServerManager:
             count += abs(self.characteristicsCost[characteristic][1] - characteristics[characteristic]) * self.characteristicsCost[characteristic][0]
         return count == points
 
+    @mylogging.log
     def logIn(self, username):
         #the password will have already been checked in the flask file with the database
         #the username will contain the players username as well as any titles they have unlocked
@@ -119,26 +134,32 @@ class ServerManager:
         self.players[uniqueString] = [username, time.time(), None]
         return uniqueString
 
+    @mylogging.log
     def getUsername(self, uniqueString):
         return self.players[uniqueString][0]
 
+    @mylogging.log
     def updateName(self, newName, playerID):
         self.players[playerID] = (newName, self.players[playerID][1], self.players[playerID][2])
 
+    @mylogging.log
     def generateUniqueString(self, length):
         #method from here https://www.educative.io/edpresso/how-to-generate-a-random-string-in-python
         letters = string.ascii_letters
         return ''.join(random.choice(letters) for i in range(length))
 
+    @mylogging.log
     def newGame(self, creatorID, maxPlayers):
         id = self.generateUniqueString(5)
         self.games[id] = [game.Game(500, self, maxPlayers), time.time(), self.players[creatorID][0]]
         return id
 
+    @mylogging.log
     def joinGame(self, playerID, gameID):
         self.games[gameID][0].addSpecies(self.players[playerID][0])
         self.players[playerID][2] = self.games[gameID][0]
 
+    @mylogging.log
     def startGame(self, playerID, gameID):
         #this starts the game the player is in if the player is the creator
         if self.games[gameID][2] == self.players[playerID][0]:
@@ -146,12 +167,14 @@ class ServerManager:
             return True
         return False
 
+    @mylogging.log
     def getChat(self, playerID):
         if self.players[playerID][2]:
             return self.players[playerID][2].getChat(self.players[playerID][0])
         else:
             return "you aren't currently in a game im confused why you would ask this"
 
+    @mylogging.log
     def tick(self, timeBetweenTicks):
         #this function should be called in a seperate thread and will constantly tick the server
         while True:
@@ -169,6 +192,7 @@ class ServerManager:
                 #if this is ever reached then that means that the tick speed specified is too fast as the server cannot keep up.
                 print("error: server running slower than designated tick speed")
 
+    @mylogging.log
     def checkForNewGeneration(self, ID):
         #this function should be called by the client when getChat is called and will tell them if they need to define a new generation, and how
         if self.players[ID][2]:#if the player is in a game
@@ -177,6 +201,7 @@ class ServerManager:
         else:
             return None#no new generation is needed
 
+    @mylogging.log
     def newGeneration(self, characteristicslist, size, ID):
         #this function should be called by the client when the player has defined a new generation
         characteristics = {"speed": 1,  # the distance that the creature can move per step i time
@@ -207,6 +232,7 @@ class ServerManager:
             return True
         return False
 
+    @mylogging.log
     def sendMessage(self, message, ID):
         #this function contains the processes for the message to be sent to all the players.
         try:
@@ -216,5 +242,6 @@ class ServerManager:
             print("someone tried to send a message and failed")
             return False
 
+    @mylogging.log
     def quitGame(self, ID):
         self.players[ID][2] = None

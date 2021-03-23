@@ -1,5 +1,6 @@
 from collections import deque
 import heapq
+import mylogging
 """
 written using this as a source for how to implement the algorithm in python:
 https://medium.com/@nicholas.w.swift/easy-a-star-pathfinding-7e6689c7f7b2
@@ -8,7 +9,7 @@ also used this website for information
 http://theory.stanford.edu/~amitp/GameProgramming/Heuristics.html
 """
 class Node:
-
+    @mylogging.log
     def __init__(self, parent=None, pos=None):
         self.parent = parent
         self.pos = pos
@@ -17,45 +18,57 @@ class Node:
         self.g = 0
         self.h = 0
 
+    @mylogging.log
     @property
     def h(self):
         return self.__h
 
+    @mylogging.log
     @h.setter
     def h(self, value):
         self.__h = value
 
+    @mylogging.log
     @property
     def g(self):
         return self.__g
 
+    @mylogging.log
     @g.setter
     def g(self, value):
         self.__g = value
 
+    @mylogging.log
     @property
     def f(self):
         return self.__f
 
+    @mylogging.log
     @f.setter
     def f(self, value):
         self.__f = value
 
+    @mylogging.log
     def __eq__(self, other):
         return self.pos == other.pos
 
+    @mylogging.log
     def __lt__(self, other):
         return self.f < other.f
 
+    @mylogging.log
     def __le__(self, other):
         return self.f <= other.f
 
+    @mylogging.log
     def __gt__(self, other):
         return self.f > other.f
 
+    @mylogging.log
     def __ge__(self, other):
         return self.f >= other.f
 
+@mylogging.log
 def astar(grid, start, end):
     if grid[start[0]][start[1]] or grid[end[0]][end[1]]:#if either the start or the end are in an intraversable place then just do a direct route.
         return directRoute(start,end)
@@ -102,6 +115,7 @@ def astar(grid, start, end):
             heapq.heappush(open, child)
     raise Exception("could not traverse from start to end")
 
+@mylogging.log
 def directRoute(start, end):
     xDist = end[0] - start[0]
     yDist = end[1] - start[1]

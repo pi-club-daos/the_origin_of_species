@@ -1,5 +1,6 @@
-import random
+import random, mylogging
 #the first-names.txt file is from https://raw.githubusercontent.com/dominictarr/random-name/master/first-names.txt
+@mylogging.log
 def generateName():
     #https://stackoverflow.com/questions/10819911/read-random-lines-from-huge-csv-file-in-python
     #this function chooses a random name from a text file using the technique in the link above

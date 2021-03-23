@@ -5,7 +5,7 @@ import pathfinding
 import nameGeneration
 import mergeSort
 import heapq
-
+import mylogging
 
 class Game:
     def __init__(self, mapsize, server, maxPlayers):
@@ -23,110 +23,137 @@ class Game:
         self.maxPlayers = maxPlayers
         self.full = self.alivePlayers == self.maxPlayers
 
+    @mylogging.log
     @property
     def full(self):
         return self.__full
 
+    @mylogging.log
     @full.setter
     def full(self, value):
         self.__full = value
 
+    @mylogging.log
     @property
     def maxPlayers(self):
         return self.__maxPlayers
 
+    @mylogging.log
     @maxPlayers.setter
     def maxPlayers(self, value):
         self.__maxPlayers = value
 
+    @mylogging.log
     @property
     def alivePlayers(self):
         return self.__alivePlayers
 
+    @mylogging.log
     @alivePlayers.setter
     def alivePlayers(self, value):
         self.__alivePlayers = value
 
+    @mylogging.log
     @property
     def creatureSize(self):
         return self.__creatureSize
 
+    @mylogging.log
     @creatureSize.setter
     def creatureSize(self, value):
         self.__creatureSize = value
 
+    @mylogging.log
     @property
     def time(self):
         return self.__time
 
+    @mylogging.log
     @time.setter
     def time(self, value):
         self.__time = value
 
+    @mylogging.log
     @property
     def chat(self):
         return self.__chat
 
+    @mylogging.log
     @chat.setter
     def chat(self, value):
         self.__chat = value
 
+    @mylogging.log
     @property
     def map(self):
         return self.__map
 
+    @mylogging.log
     @map.setter
     def map(self, value):
         self.__map = value
 
+    @mylogging.log
     @property
     def items(self):
         return self.__items
 
+    @mylogging.log
     @items.setter
     def items(self, value):
         self.__items = value
 
+    @mylogging.log
     @property
     def players(self):
         return self.__players
-    
+
+    @mylogging.log
     @players.setter
     def players(self, value):
         self.__players = value
-        
+
+    @mylogging.log
     @property
     def startTime(self):
         return self.__startTime
-    
+
+    @mylogging.log
     @startTime.setter
     def startTime(self, value):
         self.__startTime = value
-        
+
+    @mylogging.log
     @property
     def server(self):
         return self.__server
-    
+
+    @mylogging.log
     @server.setter
     def server(self, value):
         self.__server = value
-    
+
+    @mylogging.log
     @property
     def mapsize(self):
         return self.__mapsize
-    
+
+    @mylogging.log
     @mapsize.setter
     def mapsize(self, value):
         self.__mapsize = value
-        
+
+    @mylogging.log
     @property
     def started(self):
         return self.__started
-    
+
+    @mylogging.log
     @started.setter
     def started(self, value):
         self.__started = value
 
+    @mylogging.log
     def getRandomEmptySquare(self):
         # it would be too costly to check if there was another creature spawned in this square so this only checks that the square is traversable
         foundEmptySquare = False
@@ -136,27 +163,35 @@ class Game:
             foundEmptySquare = self.map[xy[0]][xy[1]] == 0
         return xy
 
+    @mylogging.log
     def itemIsDead(self, item):
         self.items.remove(item)
 
+    @mylogging.log
     def getPlayersByPoints(self):
         return mergeSort.mergeSort(self.players).keys()
 
+    @mylogging.log
     def getMapSize(self):
         return self.mapsize
 
+    @mylogging.log
     def addItem(self, item):
         self.items.append(item)
 
+    @mylogging.log
     def item(self, index):
         return self.items[index]
 
+    @mylogging.log
     def numItems(self):
         return len(self.items)
 
+    @mylogging.log
     def getChat(self, ID):
         return self.players[ID].getChat()
 
+    @mylogging.log
     def generateMap(self, mapsize):
         # generate the map using simplex noise so it looks somewhat realistic if presented in a graphical interface. this should also mean that there are no open spaces that are shut off
         octaves = 1
@@ -167,10 +202,12 @@ class Game:
                in range(mapsize)]  # for whatever reason the base parameter of this function must be less than 1 million
         return map
 
+    @mylogging.log
     def newGeneration(self, ID, characteristics, size):
         self.players[ID].newGeneration(characteristics, size)
         self.updateChat("system: there is a new generation of %s" % (ID))
 
+    @mylogging.log
     def addSpecies(self, ID):
         # a function to add new players.
         if ID in self.players.keys():
@@ -180,6 +217,7 @@ class Game:
         self.players[ID] = Species(ID, self.creatureSize, self)
         self.players[ID].firstGeneration()
 
+    @mylogging.log
     def speciesIsDead(self, species):
         if species.__class__.__name__ == "Ghost":
             return
@@ -203,6 +241,7 @@ class Game:
                                          species.ID)  # replaces the player with a ghost that can still see the chat and send messages
         del (species)
 
+    @mylogging.log
     def tick(self):
         print("game tick")
         # this increases the time and tells every item to make decisions, then tells every item to act on the decisions
@@ -221,6 +260,7 @@ class Game:
         for species in speciesToKill:
             self.speciesIsDead(self.players[species])
 
+    @mylogging.log
     def pathFind(self, loc1, loc2):
         # this function finds a path between two points and returns the path as a list of tuples
         # from testing the pathfinding algorithm it is too inefficient if the distance is more than 7, so if the distance is more than 7, a direct path will be chosen instead of a route calculated with a* pathfinding
@@ -229,12 +269,14 @@ class Game:
         else:
             return pathfinding.directRoute(loc1, loc2)
 
+    @mylogging.log
     def plantIsEaten(self, plant):
         # this function removes the plant and adds a new one in a random empty space. An item can be in the space the plant is spawned, but it must not be a hole
         del (self.items[self.items.index(plant)])
         self.addItem(Plant(self, self.getRandomEmptySquare(), random.randint(1, 5), True if random.randint(0,
                                                                                                            10) == 0 else False))  # the numbers in the random generators are magic numbers and should be replaced with parameters/class variables
 
+    @mylogging.log
     def updateChat(self, message):
         # updates the chat and updates the chat of every species in the format(time, message
         msg = (time.time(), message)
@@ -245,43 +287,53 @@ class Game:
 
 # the base class for all the different items/creatures that can exist in the game
 class Item:
+    @mylogging.log
     def __init__(self, game, location, size):
         self.location = location  # this is the location of the item on the map
         self.game = game  # this is the instance of the game class that the item belongs to. it allows the item to tell the game class to do certain things i.e. if a creature has offspring, a plant is eaten
         self.size = size  # this is the size of the item, important for eating
 
+    @mylogging.log
     def compareLocation(self, otherLocation):
         return self.location == otherLocation
 
+    @mylogging.log
     def getSize(self):
         return self.size
 
+    @mylogging.log
     def getLocation(self):
         return self.location
 
+    @mylogging.log
     def isInSight(self, playerLoc):
         # this function checks if the item is visible by the player in playerLoc.
         loc = (playerLoc[0] - self.location[0], playerLoc[1] - self.location[1])
         return loc[0] ** 2 + loc[1] ** 2
 
+    @mylogging.log
     def interestingCharacteristics(self):
         # this function returns the characteristics that affect the decisions that another item might take
         raise Exception("function not implemented")
 
+    @mylogging.log
     def eaten(self, other):
         # this function does the neccessary processes for if the creature is eaten. It will only be called by the creature that ate it
         raise Exception("function not implemented")
 
+    @mylogging.log
     def move(self):
         # this function exists so we can call this function on  any item and not get an error
         pass
 
+    @mylogging.log
     def makeDecisions(self):
         # this function exists so we can call this function on  any item and not get an error
         pass
 
 
 class Creature(Item):
+    @mylogging.log
     def __init__(self, game, location, size, name, species, characteristics, generation, minPointsEnergy, maxEnergy,
                  ID):
         self.ID = (ID,
@@ -300,21 +352,27 @@ class Creature(Item):
         self.dist = 0
         self.peopleHasHadOffspringWith = []  # a list of all the people that the creature has already had offspring with
 
+    @mylogging.log
     def getID(self):
         return self.ID
 
+    @mylogging.log
     def getName(self):
         return self.name
 
+    @mylogging.log
     def getSpecies(self):
         return self.species
 
+    @mylogging.log
     def characteristic(self, key):
         return self.characteristics[key]
 
+    @mylogging.log
     def isChild(self):
         return self.age < self.characteristics["time to grow up"]
 
+    @mylogging.log
     def calculateMove(self, destination):
         # this function calculates the move for the creature. It will use pathfinding, and return the space that the player should move to based on the speed of the creature
         path = self.game.pathFind(self.location, destination)
@@ -325,6 +383,7 @@ class Creature(Item):
         except Exception as e:
             input(e)
 
+    @mylogging.log
     def move(self):
         # this function moves the creature based on the move from calculateMove. all creatures should be moved at the same time after decisions have all been made. The creatures energy should decrease more if it moves but should always be decreased here. The species points should increase if it has energy over minpointsenergy
         self.energy -= self.dist * self.characteristics["energy per distance moved"] * self.size
@@ -333,11 +392,13 @@ class Creature(Item):
             self.dead()
         self.location = self.nextLoc
 
+    @mylogging.log
     def haveOffspring(self):
         # this function does the neccessary processes for if the creature wants to have offspring, including prompting the player to make decisions if it is the first offspring of its generation
         self.offspring.append(self.species.addOffspring(self.generation + 1, self))
         self.species.updateChat("system: %s has had offspring" % (self.name))
 
+    @mylogging.log
     def eat(self, item):
         # this function does the necessary processes for if the creature eats something. the amount of energy added should be decided by the size of the item
         if item.__class__.__name__ == "Plant":
@@ -357,6 +418,7 @@ class Creature(Item):
         if self.energy > self.maxEnergy:
             self.energy = self.maxEnergy
 
+    @mylogging.log
     def getInformation(self) -> list:
         # this function queries the isInSight of every item and returns a list of all that return true, along with the distance
         itemsInSight = []
@@ -378,6 +440,7 @@ class Creature(Item):
         # sort itemsInSight here using a merge sort and remove the distances
         return itemsInSight
 
+    @mylogging.log
     def makeDecisions(self):
         # this function makes decisions based on its characteristics and the interesting and based on the closest items first. As soon as one decision is made it will be done with this function.
         self.age += 1
@@ -443,15 +506,18 @@ class Creature(Item):
                             self.eat(item)
                             return
 
+    @mylogging.log
     def eaten(self, other):
         # this function does the neccessary processes for if the creature is eaten. It will only be called by the creature that ate it
         self.species.updateChat("system: %s was eaten by %s of species %s" % (self.name, other.name, other.species.ID))
         self.dead()
 
+    @mylogging.log
     def dead(self):
         # this function does the necessary processes for if the creature dies
         self.species.creatureIsKilled(self)
 
+    @mylogging.log
     def canEat(self, other):
         # this function does the necessary processes to check if this creature can eat the creature other.
         if other.species == self.species or not self.characteristics["carnivorous"]:
@@ -461,10 +527,12 @@ class Creature(Item):
 
 class Plant(Item):
     # change so poisonous is in a getter
+    @mylogging.log
     def __init__(self, game, location, size, poisonous):
         Item.__init__(self, game, location, size)
         self.poisonous = poisonous
 
+    @mylogging.log
     def eaten(self, other):
         # this function does the neccessary processes for if the creature is eaten. It will only be called by the creature that ate it
         self.game.plantIsEaten(self)
@@ -472,12 +540,14 @@ class Plant(Item):
 
 class Player:
     # parent class for the classes controlled by the player (for now these are only ghost and species)
+    @mylogging.log
     def __init__(self, chat, game, ID):
         self.chat = chat
         self.game = game
         self.ID = ID
         self.chatLastRead = time.time()
 
+    @mylogging.log
     def getChat(self):
         # a function to get the unread chat and delete the read chat. This could be made more effecient by deleting the whole chat when it is read, however this is likely to potentially cause issues if there a functions running in different threads
         chat = ""  # the chat to return, does not include the timestamps
@@ -492,22 +562,25 @@ class Player:
         self.chatLastRead = time.time()
         return chat
 
+    @mylogging.log
     def updateChat(self, message):
         # updates the chat in the format (time, message)
         msg = (time.time(), message)
         self.chat.append(msg)
 
+    @mylogging.log
     def sendMessage(self, message):
         # sends a message to the global game chat, and therefore all players
         message = self.ID + ": " + message
         self.game.updateChat(message)
 
+    @mylogging.log
     def getPoints(self):
         return 0
 
 
 class Species(Player):
-
+    @mylogging.log
     def __init__(self, ID, initialSize, game):
         Player.__init__(self, [], game, ID)
         self.creatureID = 0
@@ -543,12 +616,15 @@ class Species(Player):
         self.size = [initialSize]  # the size of members of the species as a list split by generations
         self.needNewGeneration = True  # change to be read with a getter
 
+    @mylogging.log
     def doesNeedNewGeneration(self):
         return self.needNewGeneration
 
+    @mylogging.log
     def getPoints(self):
         return self.points
 
+    @mylogging.log
     def addOffspring(self, generation, parent):
         # adds a new offspring
         if (len(self.characteristics) <= generation):
@@ -570,10 +646,12 @@ class Species(Player):
         self.game.addItem(newCreature)
         self.creatureID += 1
 
+    @mylogging.log
     def generateRandomName(self):
         # choose a random name
         return nameGeneration.generateName()
 
+    @mylogging.log
     def firstGeneration(self):
         # a function that creates the first generation of creatures and returns a list of them. The location must be a space on the map with a value of zero
         characteristics = {"speed": 2,  # the distance that the creature can move per step i time
@@ -614,6 +692,7 @@ class Species(Player):
 
         pass
 
+    @mylogging.log
     def newGeneration(self, characteristics, size):
         # called by the server manager when the player responds with the characteristics they want
         # contains the processes so that the characteristics and size arrays are updated with the new characteristics
@@ -622,6 +701,7 @@ class Species(Player):
         self.characteristics.append(characteristics)
         self.characteristics.append(characteristics)
 
+    @mylogging.log
     def creatureIsKilled(self, creature):
         # removes the creature from creatures and adds it to the family tree
         self.familytree[
@@ -629,6 +709,7 @@ class Species(Player):
         self.game.itemIsDead(creature)
         self.creatures.remove(creature)
 
+    @mylogging.log
     def isExtinct(self):
         if len(self.creatures) == 0:
             return True

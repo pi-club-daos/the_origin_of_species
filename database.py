@@ -1,5 +1,7 @@
 import sqlite3
+import mylogging
 
+@mylogging.log
 def runStatement(statement):
     #run the sql statement
     try:
@@ -12,6 +14,8 @@ def runStatement(statement):
         print(e)
         #probably log the error here
         return False
+
+@mylogging.log
 def runStatements(statements):
     #run the sql statement
     try:
@@ -28,6 +32,7 @@ def runStatements(statements):
         #probably log the error here
         return False
 
+@mylogging.log
 def checkIfNameIsTaken(name):
     statement = f"""
 SELECT Username
@@ -36,6 +41,7 @@ WHERE Username = '{name}'
     """
     return len(runStatement(statement))==0#check that this is what I need to do here when the runstatement() function is implemented.
 
+@mylogging.log
 def getActiveCosmetic(username):
     statement = f"""
         SELECT Cosmetics.CosmeticValue
@@ -47,6 +53,7 @@ WHERE Player.Username = '{username}';
         """
     return runStatement(statement)[0][0]
 
+@mylogging.log
 def verifyPassword(username, password):
     statement = f"""
 SELECT Password
@@ -56,6 +63,7 @@ WHERE Username = '{username}';
     print(runStatement(statement))
     return password == runStatement(statement)[0][0]
 
+@mylogging.log
 def getUnlockedCosmetics(username):
     statement = f"""
 SELECT CosmeticID
@@ -65,6 +73,7 @@ WHERE Username = '{username}';
 """
     return runStatement(statement)[0]
 
+@mylogging.log
 def getLeaderboard(numPlayers):
     statement = f"""
 Select Username
@@ -74,6 +83,7 @@ LIMIT {numPlayers};
 """
     return runStatement(statement)[0]
 
+@mylogging.log
 def addNewUser(username, password):
     statement = f"""
 INSERT INTO Players (Username, Password, Points, activeCosmetic)
@@ -82,6 +92,7 @@ VALUES ('{username}', '{password}', 0, 0);
 
     return  runStatement(statement) != False
 
+@mylogging.log
 def changeActiveCosmetic(username, newCosmeticID):
     statement = f"""
 UPDATE Players
@@ -90,6 +101,7 @@ WHERE Username = '{username}'';
 """
     return runStatement(statement) != False
 
+@mylogging.log
 def unlockNewCosmetic(username, cosmeticID):
     statement = f"""
 INSERT INTO UnlockedCosmetics
@@ -97,7 +109,7 @@ VALUES('{username}', '{cosmeticID}');
 """
     return runStatement(statement) != False
 
-
+@mylogging.log
 def createTables():
     statements = ["""
 CREATE TABLE Players (
