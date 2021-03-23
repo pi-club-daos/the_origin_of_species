@@ -132,7 +132,7 @@ class ServerManager:
 
     def newGame(self, creatorID, maxPlayers):
         id = self.generateUniqueString(5)
-        self.games[id] = [game.Game(500, self, maxPlayers), time.time(), self.players[creator][0]]
+        self.games[id] = [game.Game(500, self, maxPlayers), time.time(), self.players[creatorID][0]]
         return id
 
     def joinGame(self, playerID, gameID):
@@ -148,7 +148,7 @@ class ServerManager:
 
     def getChat(self, playerID):
         if self.players[playerID][2]:
-            return self.players[playerID][2].getChat(self.players[player][0])
+            return self.players[playerID][2].getChat(self.players[playerID][0])
         else:
             return "you aren't currently in a game im confused why you would ask this"
 
