@@ -251,5 +251,6 @@ class ServerManager:
     def quitGame(self, ID):
         self.players[ID][2] = None
 
+    @mylogging.log
     def unlockCosmetic(self, player, cosmeticID):
         database.unlockNewCosmetic(player, cosmeticID)
