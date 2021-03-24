@@ -4,6 +4,7 @@ import time
 import random
 import threading
 import mylogging
+import database
 class ServerManager:
     @mylogging.log
     def __init__(self):
@@ -172,7 +173,7 @@ class ServerManager:
         if self.players[playerID][2]:
             return self.players[playerID][2].getChat(self.players[playerID][0])
         else:
-            return "you aren't currently in a game im confused why you would ask this"
+            return ""#"you aren't currently in a game im confused why you would ask this"
 
     @mylogging.log
     def tick(self, timeBetweenTicks):
@@ -180,17 +181,21 @@ class ServerManager:
         while True:
             #print("hey1")
             timer = time.time()
+            self.lock.acquire()
             #if security is a concern(which it currently isn't) you would check that all of the players haven't been logged in for too long
             for gameID in self.games:
                 if self.games[gameID][1] - time.time() > 10800:#this means that if a game is older than 3 hours it will be deleted. this may need to be extended and is a magic number
                     del(self.games[gameID])
                 else:
                     self.games[gameID][0].tick()
+            self.lock.release()
             if time.time() - timer < timeBetweenTicks:
                 time.sleep(timeBetweenTicks - (time.time() - timer))
             else:
                 #if this is ever reached then that means that the tick speed specified is too fast as the server cannot keep up.
                 print("error: server running slower than designated tick speed")
+                self.lock.release()#because otherwise if it is running below tick speed the lock will never be released
+                time.sleep(0.1)
 
     @mylogging.log
     def checkForNewGeneration(self, ID):
@@ -245,3 +250,6 @@ class ServerManager:
     @mylogging.log
     def quitGame(self, ID):
         self.players[ID][2] = None
+
+    def unlockCosmetic(self, player, cosmeticID):
+        database.unlockNewCosmetic(player, cosmeticID)

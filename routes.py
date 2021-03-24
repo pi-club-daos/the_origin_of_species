@@ -102,7 +102,7 @@ def checkForNewGeneration():
 @app.route('/definegeneration', methods = ["PUT"])
 def defineANewGeneration():
     uniqueString = request.form["unqstr"]
-    characteristics = request.form["chr"]#this is going to be a string and will need to be processed.
+    characteristics = request.form["chr"]#this is going to be a string and is processed.
     size = request.form["size"]
     global server
     server.lock.acquire()
@@ -124,10 +124,7 @@ def checkName():
     print("hey")
     name = request.args.get("name")
     return str(database.checkIfNameIsTaken(name))
-@app.before_request
-def runBeforeEachRequest():
-    #ticker(1)
-    pass
+
 
 server = serverManager.ServerManager()
 def asyncticker(timePerTick):

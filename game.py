@@ -153,7 +153,7 @@ class Game:
     def started(self, value):
         self.__started = value
 
-    @mylogging.log
+        """   @mylogging.log
     def getRandomEmptySquare(self):
         # it would be too costly to check if there was another creature spawned in this square so this only checks that the square is traversable
         foundEmptySquare = False
@@ -162,6 +162,17 @@ class Game:
             xy = (random.randint(0, self.mapsize - 1), random.randint(0, self.mapsize - 1))
             foundEmptySquare = self.map[xy[0]][xy[1]] == 0
         return xy
+        #removed as an alternative method using recursion has been implemented
+        """
+
+    @mylogging.log
+    def getRandomEmptySquare(self):
+        # it would be too costly to check if there was another creature spawned in this square so this only checks that the square is traversable
+        xy = (random.randint(0, self.mapsize - 1), random.randint(0, self.mapsize - 1))
+        if self.map[xy[0]][xy[1]] == 0:
+            return xy
+        else:
+            return self.getRandomEmptySquare()
 
     @mylogging.log
     def itemIsDead(self, item):
@@ -222,6 +233,7 @@ class Game:
         if species.__class__.__name__ == "Ghost":
             return
         # does the appropriate processes when a species dies, including updating the players profile
+        self.server.unlockCosmetic(species.ID, 1)
         self.alivePlayers -= 1
         self.updateChat("system: %s is extinct" % (species.ID))
         if self.alivePlayers == 2:  # this means someone has won the game
@@ -263,7 +275,7 @@ class Game:
     @mylogging.log
     def pathFind(self, loc1, loc2):
         # this function finds a path between two points and returns the path as a list of tuples
-        # from testing the pathfinding algorithm it is too inefficient if the distance is more than 7, so if the distance is more than 7, a direct path will be chosen instead of a route calculated with a* pathfinding
+            # from testing the pathfinding algorithm it is too inefficient if the distance is more than 7, so if the distance is more than 7, a direct path will be chosen instead of a route calculated with a* pathfinding
         if (loc1[0] - loc2[0]) + (loc1[1] - loc2[1]) < 8:
             return pathfinding.astar(self.map, loc1, loc2)
         else:

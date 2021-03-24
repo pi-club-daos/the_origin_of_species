@@ -1,2 +1,12 @@
-import nameGeneration
-print(nameGeneration.generateName())
+import mylogging
+
+@mylogging.log
+def hello():
+    print("hi")
+
+@mylogging.log
+def hellobroken():
+    print("hi" + 3)
+
+hello()
+hellobroken()

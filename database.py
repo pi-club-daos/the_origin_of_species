@@ -73,6 +73,8 @@ WHERE Username = '{username}';
 """
     return runStatement(statement)[0]
 
+
+
 @mylogging.log
 def getLeaderboard(numPlayers):
     statement = f"""
