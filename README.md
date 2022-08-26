@@ -1,3 +1,5 @@
+***this is a 2 year old project***
+
 this is a game created by Thomas Chernaik that is a multiplayer strategy game based on the idea of evolution.
 each player controls a species and decides the characteristics for each generation of that species based on points earned by the survival of their species. 
 The ultimate goal is to be the last species left standing.
